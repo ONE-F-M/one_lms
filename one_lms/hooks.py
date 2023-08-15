@@ -199,3 +199,12 @@ app_license = "MIT"
 # auth_hooks = [
 #	"one_lms.auth.validate"
 # ]
+
+fixtures = [
+    {
+        "dt": "Custom DocPerm",
+        "filters": {
+            "parent": ("in",("LMS Course"))
+        }
+    }
+]
