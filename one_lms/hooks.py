@@ -206,5 +206,11 @@ fixtures = [
         "filters": {
             "parent": ("in",("LMS Course"))
         }
-    }
+    },
+    {
+        "dt": "Print Format",
+        "filters": {
+            "name": ("in",("LMS Certificate"))
+        }
+    },
 ]
