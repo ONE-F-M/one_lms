@@ -7,6 +7,9 @@ app_description = "Extention to Frappe LMS"
 app_email = "info@one-fm.com"
 app_license = "MIT"
 
+
+
+
 # Includes in <head>
 # ------------------
 
@@ -109,7 +112,11 @@ app_license = "MIT"
 #		"on_trash": "method"
 #	}
 # }
-
+doc_events = {
+    'LMS Batch Membership':{
+        'validate':'one_lms.overrides.lms_batch_membership.validate_current_lesson'
+    }
+}
 # Scheduled Tasks
 # ---------------
 
@@ -133,6 +140,8 @@ app_license = "MIT"
 
 # Testing
 # -------
+
+
 
 # before_tests = "one_lms.install.before_tests"
 
@@ -199,6 +208,14 @@ app_license = "MIT"
 # auth_hooks = [
 #	"one_lms.auth.validate"
 # ]
+
+
+
+
+website_route_rules = [
+	{"from_route": "/batch/learn", "to_route": "one_lms/www/batch/learn"},
+	
+]
 
 fixtures = [
     {
