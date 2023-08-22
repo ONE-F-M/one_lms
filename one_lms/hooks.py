@@ -32,7 +32,9 @@ app_license = "MIT"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+    "Course Lesson" : "public/js/doctype_js/course_lesson.js"
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -113,10 +115,14 @@ app_license = "MIT"
 #	}
 # }
 doc_events = {
-    'LMS Batch Membership':{
-        'validate':'one_lms.overrides.lms_batch_membership.validate_current_lesson'
-    }
+  "LMS Batch Membership":{
+    'validate':'one_lms.overrides.lms_batch_membership.validate_current_lesson'
+  },
+	"Course Lesson": {
+		"validate": "one_lms.overrides.course_lesson.validate_course_lesson"
+	}
 }
+
 # Scheduled Tasks
 # ---------------
 
