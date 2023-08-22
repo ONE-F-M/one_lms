@@ -7,6 +7,9 @@ app_description = "Extention to Frappe LMS"
 app_email = "info@one-fm.com"
 app_license = "MIT"
 
+
+
+
 # Includes in <head>
 # ------------------
 
@@ -104,7 +107,17 @@ doctype_js = {
 # ---------------
 # Hook on document methods and events
 
+# doc_events = {
+#	"*": {
+#		"on_update": "method",
+#		"on_cancel": "method",
+#		"on_trash": "method"
+#	}
+# }
 doc_events = {
+  "LMS Batch Membership":{
+    'validate':'one_lms.overrides.lms_batch_membership.validate_current_lesson'
+  },
 	"Course Lesson": {
 		"validate": "one_lms.overrides.course_lesson.validate_course_lesson"
 	}
@@ -133,6 +146,8 @@ doc_events = {
 
 # Testing
 # -------
+
+
 
 # before_tests = "one_lms.install.before_tests"
 
@@ -199,6 +214,14 @@ doc_events = {
 # auth_hooks = [
 #	"one_lms.auth.validate"
 # ]
+
+
+
+
+website_route_rules = [
+	{"from_route": "/batch/learn", "to_route": "one_lms/www/batch/learn"},
+	
+]
 
 fixtures = [
     {
