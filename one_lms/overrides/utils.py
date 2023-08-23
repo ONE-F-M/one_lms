@@ -72,36 +72,37 @@ def get_lesson_details(chapter):
         las_lesson_chapter = las_lesson_data[0]['parent']
         las_lesson_pos = las_lesson_data[0]['idx']
     
-    if last_lesson and current_lesson:
+    if current_lesson:
+        if last_lesson:
         #pick the largest in terms of completion
-        if chapter_dict[las_lesson_chapter] > chapter_dict[cur_lesson_chapter]:
-            cur_lesson_chapter = las_lesson_chapter
-            cur_lesson_pos = las_lesson_pos
-        if  chapter_dict[las_lesson_chapter] == chapter_dict[cur_lesson_chapter]:
-            if cur_lesson_pos < las_lesson_pos:
+            if chapter_dict[las_lesson_chapter] > chapter_dict[cur_lesson_chapter]:
+                cur_lesson_chapter = las_lesson_chapter
                 cur_lesson_pos = las_lesson_pos
-    if cur_lesson_chapter and cur_lesson_pos:
-        for row in lesson_list:
-            lesson_details = frappe.db.get_value(
-                "Course Lesson",
-                row.lesson,
-                [
-                    "name",
-                    "title",
-                    "include_in_preview",
-                    "body",
-                    "creation",
-                    "youtube",
-                    "quiz_id",
-                    "question",
-                    "file_type",
-                ],
-                as_dict=True,
-            )
-            lesson_details.number = flt(f"{chapter.idx}.{row.idx}")
-            lesson_details.icon = get_lesson_icon(lesson_details.body,chapter_dict[chapter.chapter],chapter_dict[cur_lesson_chapter],row.idx,cur_lesson_pos)
+            if  chapter_dict[las_lesson_chapter] == chapter_dict[cur_lesson_chapter]:
+                if cur_lesson_pos < las_lesson_pos:
+                    cur_lesson_pos = las_lesson_pos
+        if cur_lesson_chapter and cur_lesson_pos:
+            for row in lesson_list:
+                lesson_details = frappe.db.get_value(
+                    "Course Lesson",
+                    row.lesson,
+                    [
+                        "name",
+                        "title",
+                        "include_in_preview",
+                        "body",
+                        "creation",
+                        "youtube",
+                        "quiz_id",
+                        "question",
+                        "file_type",
+                    ],
+                    as_dict=True,
+                )
+                lesson_details.number = flt(f"{chapter.idx}.{row.idx}")
+                lesson_details.icon = get_lesson_icon(lesson_details.body,chapter_dict[chapter.chapter],chapter_dict[cur_lesson_chapter],row.idx,cur_lesson_pos)
 
-            lessons.append(lesson_details)
+                lessons.append(lesson_details)
     return lessons
 
 
