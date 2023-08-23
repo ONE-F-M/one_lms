@@ -40,6 +40,7 @@ def get_context(context):
 				"Chapter Reference", {"chapter":cur_lesson_number[1] , "parent": context.course.name}, "idx"
 				)
 			current_lesson_number = f'{str(cur_chapter_number)}.{str(lesson_number_)}'
+			completed_lessons.append(current_lesson_number)
 
 
 	chapter_index = frappe.form_dict.get("chapter")
