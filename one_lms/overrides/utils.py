@@ -4,14 +4,11 @@ from lms.lms.md import find_macros
 import os
 
 from frappe.website.utils import (
-	
-	is_binary_file,
+	is_binary_file
 )
-
 
 def get_start_folders():
 	return frappe.local.flags.web_pages_folders or ("www", "templates/pages")
-
 
 def set_template_path_(self):
     """
@@ -44,11 +41,6 @@ def get_last_completed_lesson(course):
     "Get the last completed lesson for this user or revert to the first lesson of the course"
     has_progress = frappe.get_all("LMS Course Progress",{'course':course,'member':frappe.session.user,'status':'Complete'},['lesson','chapter'])
     return has_progress[0] if has_progress else {}
-    
-        
-        
-   
-
 
 def get_lesson_details(chapter):
     lessons = []
@@ -62,7 +54,9 @@ def get_lesson_details(chapter):
     chapter_dict = {each['chapter']: each['idx'] for each in chapters_}
     current_lesson = frappe.get_value(doctype="LMS Batch Membership",filters={"course": course_, "member": frappe.session.user},fieldname="current_lesson")
     last_lesson = get_last_completed_lesson(course_)
-    
+    cur_lesson_chapter = False
+    cur_lesson_pos = False
+
     if current_lesson:
         cur_lesson_data = frappe.get_all("Lesson Reference", {"lesson": current_lesson}, ["idx",'parent'], order_by="idx")
         cur_lesson_chapter = cur_lesson_data[0]['parent']
@@ -71,7 +65,7 @@ def get_lesson_details(chapter):
         las_lesson_data = frappe.get_all("Lesson Reference", {"lesson": last_lesson['lesson']}, ["idx",'parent'], order_by="idx")
         las_lesson_chapter = las_lesson_data[0]['parent']
         las_lesson_pos = las_lesson_data[0]['idx']
-    
+
     if last_lesson and current_lesson:
         #pick the largest in terms of completion
         if chapter_dict[las_lesson_chapter] > chapter_dict[cur_lesson_chapter]:
@@ -123,5 +117,5 @@ def get_lesson_icon(content,chapter_pos,cur_chaper_pos,lesson_pos,cur_lesson_pos
 
             if not icon:
                 icon = "icon-list"
-            
+
     return icon
