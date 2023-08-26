@@ -99,9 +99,9 @@ doctype_js = {
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-#	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {
+	"LMS Certificate": "one_lms.overrides.lms_certificate.CustomLMSCertificate"
+}
 
 # Document Events
 # ---------------
@@ -220,7 +220,7 @@ doc_events = {
 
 website_route_rules = [
 	{"from_route": "/batch/learn", "to_route": "one_lms/www/batch/learn"},
-	
+
 ]
 
 fixtures = [
