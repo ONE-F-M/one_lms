@@ -40,6 +40,7 @@ def get_context(context):
 				"Chapter Reference", {"chapter":cur_lesson_number[1] , "parent": context.course.name}, "idx"
 				)
 			current_lesson_number = f'{str(cur_chapter_number)}.{str(lesson_number_)}'
+			completed_lessons.append(current_lesson_number)
 
 
 	chapter_index = frappe.form_dict.get("chapter")
@@ -87,8 +88,9 @@ def get_context(context):
 		context.next_url = get_url(neighbours["next"], context.course)
 		context.prev_url = get_url(neighbours["prev"], context.course)
 		
-		if float(lesson_number) != float(current_lesson_neighbours['next']) and  str(lesson_number) not in completed_lessons:
-			redirect_to_lesson(context.course,str(current_lesson_number))
+		if current_lesson_neighbours['next']:
+			if float(lesson_number) != float(current_lesson_neighbours['next']) and  str(lesson_number) not in completed_lessons:
+				redirect_to_lesson(context.course,str(current_lesson_number))
 	meta_info = (
 		context.lesson.title + " - " + context.course.title
 		if context.lesson.title
