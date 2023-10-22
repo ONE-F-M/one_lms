@@ -1,4 +1,3 @@
-import frappe
 __version__ = '14.0.1'
 from lms.lms import  utils
 from one_lms.overrides.utils import get_lesson_details as custom_gld,set_template_path_
