@@ -218,7 +218,8 @@ doc_events = {
 
 
 required_apps = [
-    'frappe'
+    'frappe',
+    "lms"
 ]
 
 
