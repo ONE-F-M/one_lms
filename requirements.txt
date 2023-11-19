@@ -1,2 +1,2 @@
-frappe==14.53.1 -- https://github.com/frappe/frappe
-https://github.com/frappe/lms.git
+# frappe==14.53.1 -- https://github.com/frappe/frappe
+# https://github.com/frappe/lms.git
