@@ -217,6 +217,11 @@ doc_events = {
 
 
 
+required_apps = [
+    'frappe'
+]
+
+
 
 website_route_rules = [
 	{"from_route": "/batch/learn", "to_route": "one_lms/www/batch/learn"},

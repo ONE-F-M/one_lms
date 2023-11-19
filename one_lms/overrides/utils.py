@@ -44,10 +44,7 @@ def get_last_completed_lesson(course):
     "Get the last completed lesson for this user or revert to the first lesson of the course"
     has_progress = frappe.get_all("LMS Course Progress",{'course':course,'member':frappe.session.user,'status':'Complete'},['lesson','chapter'])
     return has_progress[0] if has_progress else {}
-    
-        
-        
-   
+           
 
 
 def get_lesson_details(chapter):
