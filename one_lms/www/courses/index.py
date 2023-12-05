@@ -15,7 +15,6 @@ from lms.overrides.user import get_enrolled_courses, get_authored_courses
 def get_context(context):
 	context.no_cache = 1
 	context.live_courses, context.upcoming_courses = get_courses()
-	print(get_courses())
 	context.enrolled_courses = (
 		get_enrolled_courses()["in_progress"] + get_enrolled_courses()["completed"]
 	)
