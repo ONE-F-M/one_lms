@@ -115,7 +115,7 @@ override_doctype_class = {
 #	}
 # }
 doc_events = {
-  "LMS Batch Membership":{
+  "LMS Enrollment":{
     'validate':'one_lms.overrides.lms_batch_membership.validate_current_lesson'
   },
 	"Course Lesson": {

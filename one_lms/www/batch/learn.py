@@ -30,7 +30,7 @@ def get_context(context):
 	get_common_context(context)
 	current_lesson_number = None
 	completed_lessons = get_completed_lessons(context.course)
-	current_lesson = frappe.get_all("LMS Batch Membership",{'member':frappe.session.user,'course':context.course.name},['current_lesson'])
+	current_lesson = frappe.get_all("LMS Enrollment",{'member':frappe.session.user,'course':context.course.name},['current_lesson'])
 	
 	if current_lesson:
 		cur_lesson_number = frappe.get_value("Lesson Reference",{'lesson':current_lesson[0]['current_lesson']},['idx','parent'])
