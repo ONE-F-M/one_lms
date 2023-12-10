@@ -7,14 +7,14 @@ def get_context(context):
 	context.no_cache = 1
 	context.is_moderator = has_course_moderator_role()
 	classes = frappe.get_all(
-		"LMS Class",
+		"LMS Batch",
 		fields=[
 			"name",
 			"title",
 			"description",
 			"start_date",
 			"end_date",
-			"paid_class",
+			"paid_batch",
 			"seat_count",
 		],
 	)
@@ -32,15 +32,15 @@ def get_context(context):
 	if frappe.session.user != "Guest":
 		my_classes_info = []
 		my_classes = frappe.get_all(
-			"Class Student", {"student": frappe.session.user}, pluck="parent"
+			"Batch Student", {"student": frappe.session.user}, pluck="parent"
 		)
 
 		for class_ in my_classes:
 			my_classes_info.append(
 				frappe.db.get_value(
-					"LMS Class",
+					"LMS Batch",
 					class_,
-					["name", "title", "start_date", "end_date", "paid_class", "seat_count"],
+					["name", "title", "start_date", "end_date", "paid_batch", "seat_count"],
 					as_dict=True,
 				)
 			)

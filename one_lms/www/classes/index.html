@@ -90,8 +90,8 @@
 {% macro ClassCards(classes) %}
 <div class="lms-card-parent">
 	{% for class in classes %}
-	{% set course_count = frappe.db.count("Class Course", {"parent": class.name}) %}
-	{% set student_count = frappe.db.count("Class Student", {"parent": class.name}) %}
+	{% set course_count = frappe.db.count("Batch Course", {"parent": class.name}) %}
+	{% set student_count = frappe.db.count("Batch Student", {"parent": class.name}) %}
 
 	<div class="common-card-style column-card" style="min-height: 150px;">
 

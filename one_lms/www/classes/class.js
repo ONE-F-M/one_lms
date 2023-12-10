@@ -327,9 +327,9 @@ const add_course = (values) => {
 		method: "frappe.client.insert",
 		args: {
 			doc: {
-				doctype: "Class Course",
+				doctype: "Batch Course",
 				course: values.course,
-				parenttype: "LMS Class",
+				parenttype: "LMS Batch",
 				parentfield: "courses",
 				parent: $(".class-details").data("class"),
 			},
@@ -402,9 +402,9 @@ const add_student = (values) => {
 		method: "frappe.client.insert",
 		args: {
 			doc: {
-				doctype: "Class Student",
+				doctype: "Batch Student",
 				student: values.student,
-				parenttype: "LMS Class",
+				parenttype: "LMS Batch",
 				parentfield: "students",
 				parent: $(".class-details").data("class"),
 			},
@@ -513,7 +513,7 @@ const add_addessment = (values) => {
 				doctype: "LMS Assessment",
 				assessment_type: values.assessment_type,
 				assessment_name: values.assessment_name,
-				parenttype: "LMS Class",
+				parenttype: "LMS Batch",
 				parentfield: "assessment",
 				parent: $(".class-details").data("class"),
 			},
