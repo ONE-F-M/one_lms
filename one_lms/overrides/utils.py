@@ -57,7 +57,7 @@ def get_lesson_details(chapter):
 		"Chapter Reference", {"parent": course_}, ["idx", "chapter"], order_by="idx"
 	)
     chapter_dict = {each['chapter']: each['idx'] for each in chapters_}
-    current_lesson = frappe.get_value(doctype="LMS Batch Membership",filters={"course": course_, "member": frappe.session.user},fieldname="current_lesson")
+    current_lesson = frappe.get_value(doctype="LMS Enrollment",filters={"course": course_, "member": frappe.session.user},fieldname="current_lesson")
     last_lesson = get_last_completed_lesson(course_)
     
     if current_lesson:
