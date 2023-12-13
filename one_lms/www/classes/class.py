@@ -22,7 +22,7 @@ def get_context(context):
 	context.is_evaluator = has_course_evaluator_role()
 
 	context.class_info = frappe.db.get_value(
-		"LMS Class",
+		"LMS Batch",
 		class_name,
 		[
 			"name",
@@ -40,18 +40,18 @@ def get_context(context):
 		as_dict=True,
 	)
 
-	context.reference_doctype = "LMS Class"
+	context.reference_doctype = "LMS Batch"
 	context.reference_name = class_name
 
 	class_courses = frappe.get_all(
-		"Class Course",
+		"Batch Course",
 		{"parent": class_name},
 		["name", "course", "title"],
 		order_by="creation desc",
 	)
 
 	class_students = frappe.get_all(
-		"Class Student",
+		"Batch Student",
 		{"parent": class_name},
 		["name", "student", "student_name", "username"],
 		order_by="creation desc",

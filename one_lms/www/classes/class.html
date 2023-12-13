@@ -227,7 +227,7 @@
 {% macro Discussions(class_info) %}
 <article class="class-discussion">
 	{% set condition = is_moderator or is_student or is_evaluator %}
-	{% set doctype, docname = _("LMS Class"), class_info.name %}
+	{% set doctype, docname = _("LMS Batch"), class_info.name %}
 	{% set single_thread = True %}
 	{% set title = "Discussions" %}
 	{% set cta_title = "Post" %}
