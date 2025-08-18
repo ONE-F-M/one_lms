@@ -64,6 +64,11 @@ app_license = "mit"
 # 	"Role": "home_page"
 # }
 
+# Template Overrides
+override_template = {
+	"courses/course.html": "one_lms/www/courses/custom_course.html"
+}
+
 # Generators
 # ----------
 
@@ -241,4 +246,3 @@ app_license = "mit"
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-

@@ -1,0 +1,32 @@
+{# Custom course template based on PR https://github.com/ONE-F-M/lms/pull/2 #}
+{% macro course_content(course, membership, lesson_index, certificate, is_instructor) %}
+    <a class="btn btn-primary wide-button" id="continue-learning"
+        href="{{ get_lesson_url(course.name, lesson_index) }}{{ course.query_parameter }}">
+        {% if membership %}
+            {% set progress = frappe.utils.cint(membership.progress) %}
+            {% if progress == 0 %}
+                {{ _("Start Learning sss") }}
+            {% elif progress == 100 %}
+                {{ _("Course Completed") }}
+            {% else %}
+                {{ progress }}% {{ _("Completed, ") }}{{ _("Continue Learning") }}
+            {% endif %}
+        {% else %}
+            {{ _("Continue Learning") }}
+        {% endif %}
+    </a>
+
+    {% if membership and course.enable_certification %}
+        {% if certificate %}
+            <a class="btn btn-secondary wide-button mt-2" href="/courses/{{ course.name }}/{{ certificate }}">
+                {{ _("View Certificate") }}
+            </a>
+        {% endif %}
+    {% endif %}
+
+    {% if membership and membership.max_attempts_exceeded %}
+        <p class="text-danger mt-2">
+            {{ _("You have exceeded the maximum number of attempts allowed to appear for evaluations of this course.") }}
+        </p>
+    {% endif %}
+{% endmacro %}
