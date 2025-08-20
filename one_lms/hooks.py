@@ -28,7 +28,9 @@ fixtures = ["Translation"]
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/one_lms/css/one_lms.css"
-# app_include_js = "/assets/one_lms/js/one_lms.js"
+app_include_js = [
+	"text_editor.bundle.js"
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/one_lms/css/one_lms.css"
