@@ -49,6 +49,13 @@ def get_lms_settings_custom_fields():
                 "label": "Quiz Submission Notification Template",
                 "options": "Email Template",
                 "insert_after": "notify_instructor_quiz_submission_eod"
+            },
+            {
+                "fieldname": "training_manager",
+                "fieldtype": "Link",
+                "label": "Training Manager",
+                "options": "User",
+                "insert_after": "search_placeholder"
             }
         ]
     }
