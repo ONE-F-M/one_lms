@@ -197,7 +197,8 @@ override_whitelisted_methods = {
 }
 
 override_doctype_class = {
-	"LMS Batch": "one_lms.overrides.lms_batch.LMSBatch"
+	"LMS Batch": "one_lms.overrides.lms_batch.LMSBatch",
+	"User": "one_lms.overrides.user.User"
 }
 #
 # each overriding function accepts a `data` argument;
