@@ -5,6 +5,8 @@ app_description = "Extend Frappe LMS"
 app_email = "develop@one-fm.com"
 app_license = "mit"
 
+fixtures = ["Translation"]
+
 # Apps
 # ------------------
 
