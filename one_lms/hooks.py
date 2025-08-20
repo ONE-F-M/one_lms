@@ -193,6 +193,10 @@ after_install = "one_lms.setup.setup.after_install"
 override_whitelisted_methods = {
 	"lms.lms.doctype.lms_assignment_submission.lms_assignment_submission.upload_assignment": "one_lms.overrides.lms_assignment_submission.upload_assignment"
 }
+
+override_doctype_class = {
+	"LMS Batch": "one_lms.overrides.lms_batch.LMSBatch"
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
