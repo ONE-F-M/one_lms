@@ -32,5 +32,35 @@ def create_notification_log(doc, topic):
     if doc.owner not in instructors:
         users += instructors
     make_notification_logs(notification, users)
+    if not member:
+        member = frappe.session.user
 
+    return frappe.db.get_value(
+        "LMS Course Progress",
+        {"course": course, "owner": member, "lesson": lesson},
+        ["status"],
+    )
 
+def get_course_lessons_progress(course):
+    """
+    Fetch the progress of all lessons in the given course for a logged in user.
+    Args:
+        course (str): Name of the course.
+    Returns:
+        dict: A dictionary mapping lesson names to their progress status ('Complete' or other).
+    """
+    lessons = frappe.get_all("Course Lesson", filters={"course": course}, fields=["name"])
+    progress_data = {}
+    for lesson in lessons:
+        progress_data[lesson['name']] = get_progress(course, lesson['name'])
+    return progress_data
+
+def get_progress(course, lesson, member=None):
+    if not member:
+        member = frappe.session.user
+
+    return frappe.db.get_value(
+        "LMS Course Progress",
+        {"course": course, "owner": member, "lesson": lesson},
+        ["status"],
+    )

@@ -47,6 +47,12 @@ app_include_js = [
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
+# Jinja methods
+jinja = {
+	"methods": [
+		"one_lms.utils.get_course_lessons_progress",
+	]
+}
 doctype_js = {
 	"LMS Course" : "public/js/doctype_js/lms_course.js"
 }
