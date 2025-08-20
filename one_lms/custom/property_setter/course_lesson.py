@@ -27,5 +27,19 @@ def get_course_lesson_properties():
             "field_name": "question",
             "property": "fetch_from",
             "value": "lms_assignment.question"
+        },
+        {
+            "doctype_or_field": "DocField",
+            "doc_type": "Course Lesson",
+            "field_name": "quiz_id",
+            "property": "read_only",
+            "value": "1"
+        },
+        {
+            "doctype_or_field": "DocField",
+            "doc_type": "Course Lesson",
+            "field_name": "quiz_id",
+            "property": "depends_on",
+            "value": "eval:doc.quiz"
         }
     ]
