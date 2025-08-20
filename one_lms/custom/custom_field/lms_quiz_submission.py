@@ -8,6 +8,13 @@ def get_lms_quiz_submission_custom_fields():
                 "read_only": 1,
                 "insert_after": "result",
                 "default": "0"
+            },
+            {
+                "fieldname": "custom_employee_id",
+                "fieldtype": "Data",
+                "fetch_from": "member.username",
+                "label": "Employee ID",
+                "insert_after": "member_name"
             }
         ]
     }
