@@ -64,6 +64,17 @@ app_license = "mit"
 # 	"Role": "home_page"
 # }
 
+# Scheduler Events for Notifications (from PR)
+scheduler_events = {
+	"cron": {
+		"50 23 * * *": [
+			'one_lms.notification.notifications.notify_course_completion',
+			'one_lms.notification.notifications.notify_assignment_submission',
+			'one_lms.notification.notifications.notify_quiz_submission'
+		]
+	}
+}
+
 # Template Overrides
 override_template = {
 	"courses/course.html": "one_lms/www/courses/custom_course.html"
@@ -88,7 +99,7 @@ override_template = {
 # ------------
 
 # before_install = "one_lms.install.before_install"
-# after_install = "one_lms.install.after_install"
+after_install = "one_lms.setup.setup.after_install"
 
 # Uninstallation
 # ------------
