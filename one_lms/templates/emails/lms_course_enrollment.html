@@ -1,0 +1,33 @@
+<p></p>
+    {{ _("Dear ") }} {{ student_name }},
+</p>
+<br>
+<p>
+    {{ _("Congratulations! We are pleased to inform you that you have been enrolled in our course ")}} {{ course_name }}.
+</p>
+<br>
+<p>
+    <b>
+        {{ _("Important Details:") }}
+    </b>
+</p>
+<p>
+    <b>{{ _("Course Name:") }}</b> {{ course_name }}
+</p>
+<p>
+    
+    <b>{{ _("Enrollment Date:") }}</b> {{ frappe.utils.format_date(enrollment_date, "medium") }}
+</p>
+
+<br>
+<p>
+    {{ _("Visit the following link to view your ") }}
+    <a href="{{ course_url }}">{{ _("Course Details") }}</a>
+</p>
+<p>
+    {{ _("If you have any questions or require assistance, feel free to contact us.") }}
+</p>
+<br>
+<p>
+    {{ _("Best Regards") }}
+</p>
