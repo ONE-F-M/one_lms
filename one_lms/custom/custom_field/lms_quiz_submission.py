@@ -15,6 +15,13 @@ def get_lms_quiz_submission_custom_fields():
                 "fetch_from": "member.username",
                 "label": "Employee ID",
                 "insert_after": "member_name"
+            },
+            {
+                "fieldname": "custom_date",
+                "fieldtype": "Datetime",
+                "label": "Submission Date",
+                "read_only": 1,
+                "insert_after": "owner"
             }
         ]
     }
