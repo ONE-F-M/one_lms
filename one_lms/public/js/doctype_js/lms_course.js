@@ -5,20 +5,41 @@ frappe.ui.form.on("LMS Course", {
         re_enroll_members(frm);
     },
     onload: (frm) => {
-        frm.trigger("enable_certification");
+        frm.trigger("instructors");
     },
-    enable_certification: function(frm) {
-        if (frm.doc.enable_certification) {
-            let instructors = frm.doc.instructors || [];
-            if (instructors.length > 0) {
-                let instructor_names = instructors.map(row => row.instructor);
-				frm.set_df_property('default_instructor', 'options', instructor_names.join('\n'));
-				frm.set_value('default_instructor', instructor_names[0]);
-            }
-        } else {
-            frm.set_value('default_instructor', '');
-        }
-    },
+    instructors: async function(frm) {
+		const instructorRows = frm.doc.instructors || [];
+		if (instructorRows.length === 0) {
+			frm.set_value('default_instructor', '');
+			frm.set_df_property('default_instructor', 'options', '');
+			return;
+		}
+		const instructorIds = instructorRows.map(row => row.instructor).filter(Boolean);
+		if (instructorIds.length === 0) {
+			frm.set_value('default_instructor', '');
+			frm.set_df_property('default_instructor', 'options', '');
+			return;
+		}
+		try {
+			const response = await frappe.call({
+				method: "frappe.client.get_list",
+				args: {
+					doctype: "User",
+					filters: { "name": ["in", instructorIds] },
+					fields: ["full_name"]
+				},
+				freeze: false
+			});
+			const users = response && response.message ? response.message : [];
+			const instructorNames = users.map(user => user.full_name).filter(Boolean);
+			frm.set_df_property('default_instructor', 'options', instructorNames.join('\n'));
+			frm.set_value('default_instructor', instructorNames[0] || '');
+		} catch (e) {
+			frm.set_value('default_instructor', '');
+			frm.set_df_property('default_instructor', 'options', '');
+			frappe.msgprint(__('Failed to fetch instructor names.'));
+		}
+	}
 });
 
 const add_web_link = (frm) =>

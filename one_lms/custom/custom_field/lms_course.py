@@ -20,7 +20,7 @@ def get_lms_course_custom_fields():
                 "fieldtype": "Select",
                 "label": "Default Instructor",
                 "description": "The selected instructor will be displayed on the course certificates.",
-                "insert_after": "grant_certificate_after",
+                "insert_after": "image",
             }
         ]
     }
