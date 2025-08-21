@@ -27,9 +27,10 @@ fixtures = ["Translation"]
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/one_lms/css/one_lms.css"
+app_include_css = "/assets/one_lms/css/frappe_tinymce.css"
 app_include_js = [
-	"text_editor.bundle.js"
+	"https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.2.0/tinymce.min.js",
+	"/assets/one_lms/js/frappe_tinymce.js"
 ]
 
 # include js, css files in header of web template
