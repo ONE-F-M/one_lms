@@ -15,5 +15,12 @@ def get_lms_course_custom_fields():
                 "options": "Print Format",
                 "depends_on": "enable_certification",
             },
+            {
+                "fieldname": "default_instructor",
+                "fieldtype": "Select",
+                "label": "Default Instructor",
+                "description": "The selected instructor will be displayed on the course certificates.",
+                "insert_after": "image",
+            }
         ]
     }

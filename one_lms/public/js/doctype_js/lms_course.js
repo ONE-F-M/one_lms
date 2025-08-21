@@ -4,6 +4,34 @@ frappe.ui.form.on("LMS Course", {
         set_currency(frm);
         re_enroll_members(frm);
     },
+    onload: (frm) => {
+        frm.trigger("enable_certification");
+    },
+    enable_certification: function(frm) {
+        if (frm.doc.enable_certification) {
+            let instructors = (frm.doc.instructors || []).map(row => row.instructor);
+            if (instructors.length > 0) {
+                frappe.call({
+                    method: "frappe.client.get_list",
+                    args: {
+                        doctype: "User",
+                        filters: { "name": ["in", instructors] },
+                        fields: ["full_name"]
+                    },
+                    callback: function(response) {
+                        if (response.message) {
+                            let instructor_names = response.message.map(user => user.full_name);
+                            frm.set_df_property('default_instructor', 'options', instructor_names.join('\n'));
+                            frm.set_value('default_instructor', instructor_names[0]);
+                        }
+                    }
+                });
+            }
+        } else {
+            frm.set_value('default_instructor', '');
+            frm.set_df_property('default_instructor', 'options', '');
+        }
+    },
 });
 
 const add_web_link = (frm) =>
