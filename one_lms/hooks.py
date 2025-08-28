@@ -1,6 +1,6 @@
 app_name = "one_lms"
 app_title = "ONE FM LMS"
-app_publisher = "develop@one-fm.com"
+app_publisher = "ONE FM"
 app_description = "Extend Frappe LMS"
 app_email = "develop@one-fm.com"
 app_license = "mit"
