@@ -8,7 +8,9 @@ def build():
         try:
             subprocess.run(['yarn', 'install'], cwd=frontend_dir, check=True, capture_output=True, text=True)
             subprocess.run(['yarn', 'build'], cwd=frontend_dir, check=True, capture_output=True, text=True)
-            print('Frontend assets built successfully.')
+            print('Running custom build script...')
+            subprocess.run(['node', 'custom-build.js'], cwd=frontend_dir, check=True, capture_output=True, text=True)
+            print('Frontend assets built and overridden successfully.')
         except subprocess.CalledProcessError as e:
             print(f"Error building frontend assets for one_lms:")
             print(e.stdout)

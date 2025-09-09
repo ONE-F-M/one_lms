@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node custom-build.js",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -13,7 +13,6 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^3.0.3",
     "vite": "^3.0.7",
-    "frappe-ui": "0.1.198",
-    "fs-extra": "^10.1.0"
+    "frappe-ui": "0.1.198"
   }
 }

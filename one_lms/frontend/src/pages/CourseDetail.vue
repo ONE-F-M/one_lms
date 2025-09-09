@@ -67,7 +67,7 @@
                                                 </Badge>
                                         </div>
                                         <div class="md:hidden my-4">
-                                                <CustomCourseButtons :course="course.data" />
+                                                <CourseCardOverlay :course="course" />
                                         </div>
                                         <div
                                                 v-html="course.data.description"
@@ -88,7 +88,7 @@
                                         />
                                 </div>
                                 <div class="hidden md:block">
-                                        <CustomCourseButtons :course="course.data" />
+                                        <CourseCardOverlay :course="course" />
                                 </div>
                         </div>
                         <RelatedCourses :courseName="course.data.name" />
@@ -106,7 +106,7 @@ import {
 import { computed, watch } from 'vue'
 import { Users, Star } from 'lucide-vue-next'
 import { sessionStore } from '@/stores/session'
-import CustomCourseButtons from '../components/CustomCourseButtons.vue'
+import CourseCardOverlay from '@/components/CourseCardOverlay.vue'
 import CourseOutline from '@/components/CourseOutline.vue'
 import CourseReviews from '@/components/CourseReviews.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
