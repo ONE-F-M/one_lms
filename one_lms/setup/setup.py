@@ -3,6 +3,7 @@ from one_lms.setup.custom_field import get_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import (
 	make_property_setter, delete_property_setter
 )
+from one_lms.setup.field_property import get_field_properties
 
 def after_install():
     create_custom_fields(get_custom_fields())

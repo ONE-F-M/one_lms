@@ -20,11 +20,11 @@ def enrol_to_the_course(members, course):
                 "course": course
             }
         ):
-            lms_enrolment = frappe.get_doc(
+            lms_enrollment = frappe.get_doc(
                 dict(
                     doctype="LMS Enrollment",
                     member=member['member'],
                     course=course
                 )
             )
-            lms_enrolment.insert()
+            lms_enrollment.insert()
