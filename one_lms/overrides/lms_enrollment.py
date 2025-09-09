@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from lms.lms.doctype.lms_enrolment.lms_enrollment import LMSEnrollment as BaseLMSEnrollment
+from lms.lms.doctype.lms_enrollment.lms_enrollment import LMSEnrollment as BaseLMSEnrollment
 
 class LMSEnrollment(BaseLMSEnrollment):
     def validate(self):
