@@ -1,0 +1,19 @@
+{
+  "name": "one_lms-frontend",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node custom-build.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.2.37"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^3.0.3",
+    "vite": "^3.0.7",
+    "frappe-ui": "0.1.198",
+    "fs-extra": "^10.1.0"
+  }
+}

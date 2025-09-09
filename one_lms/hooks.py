@@ -89,9 +89,9 @@ scheduler_events = {
 }
 
 # Template Overrides
-override_template = {
-	"courses/course.html": "one_lms/www/courses/custom_course.html"
-}
+# override_template = {
+# 	"courses/course.html": "one_lms/www/courses/custom_course.html"
+# }
 
 # Generators
 # ----------
