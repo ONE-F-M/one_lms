@@ -3,7 +3,7 @@ from one_lms.setup.custom_field import get_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import (
 	make_property_setter, delete_property_setter
 )
-from one_lms.setup.field_property import get_field_properties
+from one_lms.setup.property_setter import get_field_properties
 
 def after_install():
     create_custom_fields(get_custom_fields())
@@ -17,6 +17,6 @@ def add_property_setter(property_setters):
 			property=property.get("property"),
 			value=property.get("value"),
 			property_type=property.get("property_type"),
-			for_doctype=property.get("doctype_or_field"),
+			for_doctype=True if property.get("doctype_or_field") == "DocType" else False,
 			validate_fields_for_doctype=False
 		)
