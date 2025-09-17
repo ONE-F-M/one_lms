@@ -1,20 +1,26 @@
 {# Custom course template based on PR https://github.com/ONE-F-M/lms/pull/2 #}
 {% macro course_content(course, membership, lesson_index, certificate, is_instructor) %}
-    <a class="btn btn-primary wide-button" id="continue-learning"
-        href="{{ get_lesson_url(course.name, lesson_index) }}{{ course.query_parameter }}">
-        {% if membership %}
-            {% set progress = frappe.utils.cint(membership.progress) %}
-            {% if progress == 0 %}
-                {{ _("Start Learning sss") }}
-            {% elif progress == 100 %}
-                {{ _("Course Completed") }}
+    {% if not membership and frappe.session.user != "Guest" and course.disable_self_learning %}
+        <div class="btn btn-primary wide-button request-enrolment" data-course="{{ course.name | urlencode }}">
+            {{ _("Request Enrolment") }}
+        </div>
+    {% else %}
+        <a class="btn btn-primary wide-button" id="continue-learning"
+            href="{{ get_lesson_url(course.name, lesson_index) }}{{ course.query_parameter }}">
+            {% if membership %}
+                {% set progress = frappe.utils.cint(membership.progress) %}
+                {% if progress == 0 %}
+                    {{ _("Start Learning") }}
+                {% elif progress == 100 %}
+                    {{ _("Course Completed") }}
+                {% else %}
+                    {{ progress }}% {{ _("Completed, ") }}{{ _("Continue Learning") }}
+                {% endif %}
             {% else %}
-                {{ progress }}% {{ _("Completed, ") }}{{ _("Continue Learning") }}
+                {{ _("Continue Learning") }}
             {% endif %}
-        {% else %}
-            {{ _("Continue Learning") }}
-        {% endif %}
-    </a>
+        </a>
+    {% endif %}
 
     {% if membership and course.enable_certification %}
         {% if certificate %}
@@ -30,3 +36,4 @@
         </p>
     {% endif %}
 {% endmacro %}
+<script src="/one_lms/www/courses/custom_course.js"></script>
