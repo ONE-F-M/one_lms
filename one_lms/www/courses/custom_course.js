@@ -11,7 +11,7 @@ const request_enrolment = (e) => {
     let $btn = $(e.currentTarget);
     let course = $btn.attr("data-course");
     if (frappe.session.user == "Guest") {
-        window.location.href = `/login?redirect-to=/courses/${course}`;
+        window.location.href = `/login?redirect-to=/courses/${encodeURIComponent(course)}`;
         return;
     }
 
