@@ -35,7 +35,7 @@ app_include_js = [
 
 # include js, css files in header of web template
 # web_include_css = "/assets/one_lms/css/one_lms.css"
-# web_include_js = "/assets/one_lms/js/one_lms.js"
+web_include_js = "/assets/one_lms/js/one_lms.js"
 
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "one_lms/public/scss/website"
