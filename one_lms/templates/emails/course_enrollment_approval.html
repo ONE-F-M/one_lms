@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Enrolment Request Approved</title>
+</head>
+<body>
+    <p>Dear {{ student_name }},</p>
+    <p>Great news! Your course enrolment request for <strong>{{ course_name }}</strong> has been approved.</p>
+    <ul>
+        <li><strong>Approved by:</strong> {{ approver_name }}</li>
+        <li><strong>Approval Date:</strong> {{ approval_date }}</li>
+    </ul>
+    <p>You can now access the course using the link below:</p>
+    <p><a href="{{ course_url }}">Go to Course</a></p>
+    <p>Happy Learning!</p>
+</body>
+</html>

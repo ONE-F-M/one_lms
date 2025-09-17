@@ -178,6 +178,29 @@ def notify_assignment_submission():
 			frappe.db.commit()
 
 
+def send_enrollment_approval_email(enrolment_request):
+    member_doc = frappe.get_doc("User", enrolment_request.member)
+    course_doc = frappe.get_doc("LMS Course", enrolment_request.course)
+    member_name = member_doc.full_name or enrolment_request.member
+    approver_name = frappe.utils.get_fullname(frappe.session.user)
+    approval_date = frappe.utils.format_datetime(frappe.utils.now_datetime(), "medium")
+    course_url = f"{frappe.utils.get_url()}/courses/{enrolment_request.course}"
+    recipient_email = getattr(member_doc, 'personal_email', member_doc.email)
+    frappe.sendmail(
+        recipients=[recipient_email],
+        subject=f"Course Enrolment Request Approved - {course_doc.title}",
+        template="course_enrollment_approval",
+        args={
+            "student_name": member_name,
+            "course_name": course_doc.title,
+            "approver_name": approver_name,
+            "approval_date": approval_date,
+            "course_url": course_url
+        },
+        header=["Course Enrolment Approved", "green"]
+    )
+
+
 def notify_quiz_submission():
 	'''
 		Method to notify the quiz submission on daily basis

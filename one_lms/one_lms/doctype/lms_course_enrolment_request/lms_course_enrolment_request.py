@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
+from one_lms.notification.notifications import send_enrollment_approval_email
 
 class LMSCourseEnrolmentRequest(Document):
     def after_insert(self):
@@ -49,45 +50,49 @@ class LMSCourseEnrolmentRequest(Document):
     def notify_member_on_status_change(self, status):
         try:
             member_doc = frappe.get_doc("User", self.member)
-            member_name = member_doc.full_name or self.member
-            course_doc = frappe.get_doc("LMS Course", self.course)
-            if status == "Approved":
-                subject = f"Course Enrolment Request Approved - {course_doc.title}"
-                message = f"""
-                <p>Dear {member_name},</p>
-                <p>Great news! Your course enrolment request has been <strong>approved</strong>.</p>
-                <ul>
-                <li><strong>Course:</strong> {course_doc.title}</li>
-                <li><strong>Status:</strong> Approved</li>
-                <li><strong>Date:</strong> {frappe.format(frappe.utils.now(), 'datetime')}</li>
-                </ul>
-                <p>You can now access the course content and begin your learning journey.</p>
-                <p>Happy Learning!</p>
-                """
+            roles = frappe.get_roles(self.member)
+            if status == "Approved" and "Staff Member" in roles:
+                send_enrollment_approval_email(self)
             else:
-                subject = f"Course Enrolment Request Rejected - {course_doc.title}"
-                message = f"""
-                <p>Dear {member_name},</p>
-                <p>We regret to inform you that your course enrolment request has been <strong>rejected</strong>.</p>
-                <ul>
-                <li><strong>Course:</strong> {course_doc.title}</li>
-                <li><strong>Status:</strong> Rejected</li>
-                <li><strong>Date:</strong> {frappe.format(frappe.utils.now(), 'datetime')}</li>
-                </ul>
-                <p>Please contact the course instructors for more information.</p>
-                <p>Thank you.</p>
-                """
-            notification_doc = frappe.get_doc({
-                "doctype": "Notification Log",
-                "subject": subject,
-                "email_content": message,
-                "document_type": self.doctype,
-                "document_name": self.name,
-                "from_user": frappe.session.user,
-                "type": "Alert",
-                "for_user": self.member
-            })
-            notification_doc.insert(ignore_permissions=True)
+                member_name = member_doc.full_name or self.member
+                course_doc = frappe.get_doc("LMS Course", self.course)
+                if status == "Approved":
+                    subject = f"Course Enrolment Request Approved - {course_doc.title}"
+                    message = f\"\"\"
+                    <p>Dear {member_name},</p>
+                    <p>Great news! Your course enrolment request has been <strong>approved</strong>.</p>
+                    <ul>
+                    <li><strong>Course:</strong> {course_doc.title}</li>
+                    <li><strong>Status:</strong> Approved</li>
+                    <li><strong>Date:</strong> {frappe.format(frappe.utils.now(), 'datetime')}</li>
+                    </ul>
+                    <p>You can now access the course content and begin your learning journey.</p>
+                    <p>Happy Learning!</p>
+                    \"\"\"
+                else:
+                    subject = f"Course Enrolment Request Rejected - {course_doc.title}"
+                    message = f\"\"\"
+                    <p>Dear {member_name},</p>
+                    <p>We regret to inform you that your course enrolment request has been <strong>rejected</strong>.</p>
+                    <ul>
+                    <li><strong>Course:</strong> {course_doc.title}</li>
+                    <li><strong>Status:</strong> Rejected</li>
+                    <li><strong>Date:</strong> {frappe.format(frappe.utils.now(), 'datetime')}</li>
+                    </ul>
+                    <p>Please contact the course instructors for more information.</p>
+                    <p>Thank you.</p>
+                    \"\"\"
+                notification_doc = frappe.get_doc({
+                    "doctype": "Notification Log",
+                    "subject": subject,
+                    "email_content": message,
+                    "document_type": self.doctype,
+                    "document_name": self.name,
+                    "from_user": frappe.session.user,
+                    "type": "Alert",
+                    "for_user": self.member
+                })
+                notification_doc.insert(ignore_permissions=True)
         except Exception as e:
             frappe.log_error(f"Error sending member notification", "LMS Enrolment Request Status Notification")
 
