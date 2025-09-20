@@ -84,12 +84,7 @@ class LMSCourseEnrolmentRequest(Document):
     def on_update(self):
         if self.status == "Approved":
             self.create_enrollment()
-            self.notify_member_on_instructor_action(
-                description="Your course enrollment request has been approved.",
-                action="Approved",
-                document_link=frappe.utils.get_url(f"lms/courses/{self.course}"),
-                link_name="Link to the Course Page"
-            )
+        self.notify_member_on_instructor_action()
 
     def create_enrollment(self):
         if self.status != "Approved":
@@ -108,18 +103,20 @@ class LMSCourseEnrolmentRequest(Document):
             "member": self.member,
         }).insert(ignore_permissions=True)
 
-    def notify_member_on_instructor_action(self, description, action, document_link, link_name):
+    def notify_member_on_instructor_action(self):
+        if self.status not in ["Approved", "Rejected"]:
+            return
         content = self.get_email_content_for_member()
         context = dict(
             header="Dear {0},<br/> Good day.".format(self.member_name or self.member),
             document_name=self.name,
             document_type=self.doctype,
-            document_link=document_link,
-            description=description,
+            document_link=frappe.utils.get_url(f"lms/courses/{self.course}"),
+            description=f"Your course enrollment request has been {self.status.lower()}.",
             content=content,
-            link_name=link_name,
+            link_name="Link to the Course Page",
         )
-        subject = f"Course Enrollment Request for {self.course_title} has been {action}"
+        subject = f"Course Enrollment Request for {self.course_title} has been {self.status.lower()}"
 
         msg = frappe.render_template('one_lms/templates/emails/default_email.html', context=context)
         frappe.sendmail(
