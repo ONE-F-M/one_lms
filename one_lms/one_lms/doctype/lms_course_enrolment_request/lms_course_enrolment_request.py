@@ -74,12 +74,43 @@ class LMSCourseEnrolmentRequest(Document):
             })
             notification_doc.insert(ignore_permissions=True)
 
-    def notify_member_on_status_change(self, status):
+    @frappe.whitelist()
+    def enrolment_request_approve_reject(self, action):
+        if action == "Approve":
+            self.db_set("status", "Approved")
+        elif action == "Reject":
+            self.db_set("status", "Rejected")
+        self.on_update()
+        return "success"
+
+    def on_update(self):
+        if self.status in ["Approved", "Rejected"]:
+            self.notify_member_on_status_change()
+            self.create_enrollment()
+
+    def create_enrollment(self):
+        if self.status != "Approved":
+            return
+        existing_enrollment = frappe.db.exists(
+            "LMS Enrollment",
+            {"course": self.course, "member": self.member, "member_type": "Student"},
+        )
+        if existing_enrollment:
+            return
+        frappe.get_doc({
+            "doctype": "LMS Enrollment",
+            "course": self.course,
+            "role": "Member",
+            "member_type": "Student",
+            "member": self.member,
+        }).insert(ignore_permissions=True)
+
+    def notify_member_on_status_change(self):
         try:
             member_doc = frappe.get_doc("User", self.member)
             member_name = member_doc.full_name or self.member
             course_doc = frappe.get_doc("LMS Course", self.course)
-            if status == "Approved":
+            if self.status == "Approved":
                 subject = f"Course Enrolment Request Approved - {course_doc.title}"
                 message = f"""
                 <p>Dear {member_name},</p>
@@ -137,24 +168,3 @@ def has_pending_request(course, member):
         {"course": course, "member": member, "status": "Open"},
     )
     return bool(pending_request)
-
-@frappe.whitelist()
-def approve_lms_course_enrolment_request(docname, option):
-    enrolment_request = frappe.get_doc("LMS Course Enrolment Request", docname)
-    option = option.lower()
-    if option == "approve":
-        enrolment_request.status = "Approved"
-    elif option == "reject":
-        enrolment_request.status = "Rejected"
-    enrolment_request.save(ignore_permissions=True)
-    if option == "approve":
-        frappe.get_doc({
-            "doctype": "LMS Enrollment",
-            "course": enrolment_request.course,
-            "role": "Member",
-            "member_type": "Student",
-            "member": enrolment_request.member,
-        }).insert(ignore_permissions=True)
-    enrolment_request.notify_member_on_status_change(enrolment_request.status)
-    frappe.db.commit()
-    return "success"
