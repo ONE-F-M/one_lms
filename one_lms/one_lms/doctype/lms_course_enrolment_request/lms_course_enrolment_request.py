@@ -11,57 +11,68 @@ class LMSCourseEnrolmentRequest(Document):
     def notify_instructors_on_request(self):
         try:
             course_doc = frappe.get_doc("LMS Course", self.course)
-            instructor_emails = []
-            if course_doc.instructors:
-                for instructor in course_doc.instructors:
-                    if instructor.instructor:
-                        instructor_emails.append(instructor.instructor)
-
+            instructor_emails = self.get_instructors()
             if instructor_emails:
                 member_doc = frappe.get_doc("User", self.member)
-                member_name = member_doc.full_name or self.member
-
-                employee = frappe.get_all("Employee", filters={"user_id": self.member}, fields=["employee"])
-                employee_id = employee[0].employee if employee else ""
-
-                subject = f"New Course Enrollment Request - {course_doc.title}"
-                message = f"""
-                <p>Dear Instructor,</p>
-                <p>A new course enrollment request has been submitted by a staff member. Here are the details:</p>
-                <ul>
-                    <li><strong>Staff Name:</strong> {member_name}</li>
-                    <li><strong>Employee ID:</strong> {employee_id}</li>
-                    <li><strong>Email:</strong> {self.member}</li>
-                    <li><strong>Course Name:</strong> {course_doc.title}</li>
-                    <li><strong>Request Date:</strong> {frappe.utils.format_datetime(self.creation, "medium")}</li>
-                </ul>
-                <p>Please review and approve or reject the request from the LMS Course Enrolment Request list.</p>
-                <p>Thank you.</p>
-                """
-
-                # Send email to instructors
+                content = self.get_email_content(member_doc)
+                context = dict(
+                    header="Dear Instructor,<br/> Good day.",
+                    document_name=self.name,
+                    document_type=self.doctype,
+                    document_link=frappe.utils.get_url(self.get_url()),
+                    description="A new course enrollment request has been submitted. Please review this request in the system and take the necessary action.",
+                    content=content,
+                    link_name="Link to the Course Enrolment Request",
+                )
+                subject = f"Course Enrollment Request: {self.course}"
+                
+                msg = frappe.render_template('one_lms/templates/emails/default_email.html', context=context)
                 frappe.sendmail(
                     recipients=instructor_emails,
                     subject=subject,
-                    message=message,
-                    header=["New Course Enrollment Request", "green"]
+                    message=msg
                 )
-
                 # Create Notification Log for each instructor
-                for email in instructor_emails:
-                    notification_doc = frappe.get_doc({
-                        "doctype": "Notification Log",
-                        "subject": subject,
-                        "email_content": message,
-                        "document_type": self.doctype,
-                        "document_name": self.name,
-                        "from_user": frappe.session.user,
-                        "type": "Alert",
-                        "for_user": email
-                    })
-                    notification_doc.insert(ignore_permissions=True)
+                self.create_notification_log(instructor_emails, subject, msg)
         except Exception as e:
-            frappe.log_error(f"Error sending instructor notification: {e}", "LMS Enrolment Request Notification")
+            frappe.log_error(message=f"Error sending instructor notification: {e}", title="LMS Enrolment Request Notification")
+
+    def get_instructors(self):
+        course_doc = frappe.get_doc("LMS Course", self.course)
+        instructor_emails = []
+        if course_doc.instructors:
+            for instructor in course_doc.instructors:
+                if instructor.instructor:
+                    instructor_emails.append(instructor.instructor)
+        return instructor_emails
+
+    def get_email_content(self, member_doc):
+        return f"""The details of the enrolment request are shown below:
+            <br/><br/>
+            Employee ID: {member_doc.username}
+            <br/>
+            Employee Name: {member_doc.full_name or self.member}
+            <br/>
+            Email: {self.member}
+            <br/>
+            Course Name: {self.course}
+            <br/>
+            Request Date: {frappe.utils.format_datetime(self.creation, "medium")}
+        """
+
+    def create_notification_log(self, instructor_emails, subject, msg):
+        for user in instructor_emails:
+            notification_doc = frappe.get_doc({
+                "doctype": "Notification Log",
+                "subject": subject,
+                "email_content": msg,
+                "document_type": self.doctype,
+                "document_name": self.name,
+                "from_user": frappe.session.user,
+                "type": "Alert",
+                "for_user": user
+            })
+            notification_doc.insert(ignore_permissions=True)
 
     def notify_member_on_status_change(self, status):
         try:
