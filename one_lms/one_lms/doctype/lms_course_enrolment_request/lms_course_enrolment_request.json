@@ -6,7 +6,10 @@
  "engine": "InnoDB",
  "field_order": [
   "member",
+  "member_name",
+  "username",
   "course",
+  "course_title",
   "column_break_i9x6",
   "date",
   "status"
@@ -45,11 +48,31 @@
    "label": "Status",
    "options": "Open\nApproved\nRejected",
    "read_only": 1
+  },
+  {
+   "fetch_from": "member.full_name",
+   "fieldname": "member_name",
+   "fieldtype": "Data",
+   "label": "Member Name"
+  },
+  {
+   "fetch_from": "member.username",
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Username"
+  },
+  {
+   "fetch_from": "course.title",
+   "fieldname": "course_title",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Course Title"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-25 00:12:03.895139",
+ "modified": "2025-09-20 14:25:09.719081",
  "modified_by": "Administrator",
  "module": "ONE LMS",
  "name": "LMS Course Enrolment Request",
@@ -80,6 +103,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
