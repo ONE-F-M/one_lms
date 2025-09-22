@@ -22,7 +22,7 @@ class LMSCourseEnrolmentRequest(Document):
                     content=content,
                     link_name="Link to the Course Enrolment Request",
                 )
-                subject = f"Course Enrollment Request: {self.course_title or self.course}"
+                subject = f"Course Enrollment Request: {self.course}"
                 
                 msg = frappe.render_template('one_lms/templates/emails/default_email.html', context=context)
                 frappe.sendmail(
@@ -49,11 +49,11 @@ class LMSCourseEnrolmentRequest(Document):
             <br/><br/>
             Employee ID: {self.username}
             <br/>
-            Employee Name: {self.member_name or self.member}
+            Employee Name: {self.member}
             <br/>
             Email: {self.member}
             <br/>
-            Course Name: {self.course_title or self.course}
+            Course Name: {self.course}
             <br/>
             Request Date: {frappe.utils.format_datetime(self.creation, "medium")}
         """
@@ -78,6 +78,7 @@ class LMSCourseEnrolmentRequest(Document):
             self.db_set("status", "Approved")
         elif action == "Reject":
             self.db_set("status", "Rejected")
+        
         self.on_update()
         return "success"
 
@@ -108,7 +109,7 @@ class LMSCourseEnrolmentRequest(Document):
             return
         content = self.get_email_content_for_member()
         context = dict(
-            header="Dear {0},<br/> Good day.".format(self.member_name or self.member),
+            header="Dear {0},<br/> Good day.".format(self.member),
             document_name=self.name,
             document_type=self.doctype,
             document_link=frappe.utils.get_url(f"lms/courses/{self.course}"),
@@ -116,25 +117,53 @@ class LMSCourseEnrolmentRequest(Document):
             content=content,
             link_name="Link to the Course Page",
         )
-        subject = f"Course Enrollment Request for {self.course_title} has been {self.status.lower()}"
+        subject = f"Course Enrollment Request for {self.course} has been {self.status.lower()}"
 
         msg = frappe.render_template('one_lms/templates/emails/default_email.html', context=context)
-        frappe.sendmail(
-            recipients=[self.member],
-            subject=subject,
-            message=msg
-        )
+        # frappe.sendmail(
+        #     recipients=[self.member],
+        #     subject=subject,
+        #     message=msg
+        # )
         # Create Notification Log for each instructor
         self.create_notification_log([self.member], subject, msg)
+        self.send_push_notification()
 
     def get_email_content_for_member(self):
         return f"""
-            Course Name: {self.course_title or self.course}
+            Course Name: {self.course}
             <br/>
             Approver: {frappe.db.get_value("User", frappe.session.user, "full_name") or frappe.session.user}
             <br/>
             Decision Date: {frappe.utils.format_datetime(self.modified, "medium")}
         """
+
+    
+    def send_push_notification(self):
+        import requests, json
+        headers = {
+            "Content-Type": "application/json"
+        }
+        method = '/api/method/one_fm.api.api.push_notification_rest_api_for_lms'
+        site = getattr(frappe.local.conf, 'push_notification_backend_url', None)
+        if not site:
+            frappe.log_error(title="Error Sending Notification", message="Push notification site not set in site_config.json")
+            return
+        site = site.strip("/")
+        course_title = frappe.get_value("LMS Course", self.course, 'title')
+        data = {
+            "user_id": self.member
+        }
+        message = f"""
+            Your Enrollment Request for  {course_title} has been {self.status.lower()}.
+        """
+        data['message'] = message
+        site_url = site + method
+        response = requests.post(site_url, data=json.dumps(data), headers=headers)
+        if response.status_code == 200:
+            return
+        else:
+            frappe.log_error(title="Error sending push notification", message=response.text)
 
 @frappe.whitelist()
 def create_lms_course_enrolment_request(course, member=None):
