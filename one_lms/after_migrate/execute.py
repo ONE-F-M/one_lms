@@ -2,17 +2,19 @@ import frappe
 import os
 import shutil
 import subprocess
+import shlex
 
-def run_command(command, cwd=None, shell=True):
+def run_command(command_list, cwd=None):
     """
-    Executes a shell command and prints its output.
+    Executes a command from a list of arguments safely.
     """
+    # For display purposes, join the command list back into a readable string
+    command_str = shlex.join(command_list)
     try:
-        # Execute the command
+        # Execute the command list, shell=False is the default and is safer
         result = subprocess.run(
-            command, 
+            command_list, 
             cwd=cwd, 
-            shell=shell, 
             check=True, 
             text=True, 
             capture_output=True
@@ -21,13 +23,14 @@ def run_command(command, cwd=None, shell=True):
         print(result.stdout)
         if result.stderr:
             print(result.stderr)
-        print(f"✅ Command '{command}' executed successfully.")
+        print(f"✅ Command '{command_str}' executed successfully.")
     except subprocess.CalledProcessError as e:
         # Handle errors in the command execution
-        print(f"❌ An error occurred while running the command: {command}")
+        print(f"❌ An error occurred while running the command: {command_str}")
         print(f"Output: {e.stdout}")
         print(f"Error: {e.stderr}")
-
+        
+        
 def update_lesson():
     """
     Replaces the standard LMS Lesson.vue file with the custom version from one_lms
@@ -59,7 +62,8 @@ def update_lesson():
 
         # Trigger the build process to make the frontend changes live
         print("🏗️ Running 'bench build' to apply frontend changes...")
-        run_command("bench build --app lms", cwd=bench_path)
+        
+        run_command(['bench', 'build', '--app', 'lms'], cwd=bench_path)
 
     
         
