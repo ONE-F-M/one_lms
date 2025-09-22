@@ -114,6 +114,11 @@ override_template = {
 # before_install = "one_lms.install.before_install"
 after_install = "one_lms.setup.setup.after_install"
 
+# After migrate hook to update CourseCardOverlay.vue programmatically
+after_migrate = [
+	"one_lms.after_migrate.execute.after_migrate"
+]
+
 # Uninstallation
 # ------------
 
