@@ -58,10 +58,43 @@ def update_course_card_overlay():
     return False
 
 
-def after_migrate():
-    value = update_course_card_overlay()
+def update_next_button_with_countdown():
+    FILE_PATH = frappe.utils.get_bench_path() + '/apps/lms/frontend/src/pages/Lesson.vue'
+    if os.path.exists(FILE_PATH):
+        # Replace Next button template
+        search_text = '''<Button v-if="lesson.data.next" @click="switchLesson('next')">'''
+        appendable_code = '''<Button v-if=\"lesson.data.next\" :disabled=\"nextButtonDisabled\" @click=\"switchLesson('next')\">'''
+        first_change = append_code_in_file(FILE_PATH, search_text, appendable_code, replace_with_search_text=True)
 
-    if value:
+        # Add countdown text in button
+        search_text = '''<span>
+									{{ __('Next') }}
+								</span>'''
+        appendable_code = '''<span v-if=\"!nextButtonDisabled\">\n                {{ __('Next') }}\n            </span>\n            <span v-else>\n                {{ `Please wait for ${nextCountdown} seconds` }}\n            </span>'''
+        second_change = append_code_in_file(FILE_PATH, search_text, appendable_code, replace_with_search_text=True)
+
+        # Inject handler and state variables if not present
+        search_text = "const props = defineProps({"
+        appendable_code = '''const nextCountdown = ref(10)\nconst nextButtonDisabled = ref(true)\nlet nextCountdownInterval = null\n\nfunction startNextCountdown() {\n    nextCountdown.value = 10\n    nextButtonDisabled.value = true\n    if (nextCountdownInterval) clearInterval(nextCountdownInterval)\n    nextCountdownInterval = setInterval(() => {\n        if (nextCountdown.value > 1) {\n            nextCountdown.value--\n        } else {\n            clearInterval(nextCountdownInterval)\n            nextButtonDisabled.value = false\n            nextCountdown.value = 0\n        }\n    }, 1000)\n}\n\nonMounted(() => {\n    startNextCountdown()\n })\n\nwatch(\n    [() => route.params.chapterNumber, () => route.params.lessonNumber],\n    async (\n        [newChapterNumber, newLessonNumber],\n        [oldChapterNumber, oldLessonNumber]\n    ) => {\n        if (newChapterNumber || newLessonNumber) {\n           startNextCountdown()\n        }\n    }\n)\n\nonBeforeUnmount(() => {\n    if (nextCountdownInterval) clearInterval(nextCountdownInterval)\n })'''
+        third_change = append_code_in_file(FILE_PATH, search_text, appendable_code + "\n" + search_text, replace_with_search_text=True)
+
+        if first_change or second_change or third_change:
+            return True
+    else:
+        print(FILE_PATH, 'not found')
+    return False
+
+
+def after_migrate():
+    any_changes = False
+
+    if update_course_card_overlay():
+        any_changes = True
+
+    if update_next_button_with_countdown():
+        any_changes = True
+        
+    if any_changes:
         bench_path = frappe.utils.get_bench_path()
         lms_dir = os.path.join(bench_path, 'apps/lms/frontend')
 
