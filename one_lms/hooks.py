@@ -205,7 +205,7 @@ after_install = "one_lms.setup.setup.after_install"
 #
 
 after_migrate = [
-	"one_lms.after_migrate.execute.update_lesson"
+	"one_lms.after_migrate.execute.after_migrate"
 ]
 
 
