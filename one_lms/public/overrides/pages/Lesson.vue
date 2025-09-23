@@ -131,13 +131,16 @@
 								</Button>
 							</router-link>
 
-							<Button v-if="lesson.data.next" @click="switchLesson('next')">
+							<Button v-if="lesson.data.next" :disabled="nextButtonDisabled" @click="switchLesson('next')">
 								<template #suffix>
 									<ChevronRight class="w-4 h-4 stroke-1" />
 								</template>
-								<span>
+								<span v-if="!nextButtonDisabled">
 									{{ __('Next') }}
 								</span>
+								<span v-else>
+                					{{ `Please wait for ${nextCountdown} seconds` }}
+            					</span>
 							</Button>
 
 							<router-link
@@ -358,6 +361,45 @@ const { brand } = sessionStore()
 const sidebarStore = useSidebar()
 const plyrSources = ref([])
 let timerInterval
+
+const nextCountdown = ref(10)
+const nextButtonDisabled = ref(true)
+let nextCountdownInterval = null
+
+function startNextCountdown() {
+    nextCountdown.value = 10
+    nextButtonDisabled.value = true
+    if (nextCountdownInterval) clearInterval(nextCountdownInterval)
+    nextCountdownInterval = setInterval(() => {
+        if (nextCountdown.value > 1) {
+            nextCountdown.value--
+        } else {
+            clearInterval(nextCountdownInterval)
+            nextButtonDisabled.value = false
+            nextCountdown.value = 0
+        }
+    }, 1000)
+}
+
+onMounted(() => {
+    startNextCountdown()
+ })
+
+watch(
+    [() => route.params.chapterNumber, () => route.params.lessonNumber],
+    async (
+        [newChapterNumber, newLessonNumber],
+        [oldChapterNumber, oldLessonNumber]
+    ) => {
+        if (newChapterNumber || newLessonNumber) {
+           startNextCountdown()
+        }
+    }
+)
+
+onBeforeUnmount(() => {
+    if (nextCountdownInterval) clearInterval(nextCountdownInterval)
+})
 
 const toggleReadAloud = () => {
     // Ensure the content element is available
