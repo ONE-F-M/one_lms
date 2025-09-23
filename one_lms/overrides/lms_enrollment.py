@@ -8,7 +8,7 @@ class LMSEnrollment(BaseLMSEnrollment):
         super().validate()
         if self.is_new():
             self.notify_user()
-            self.send_push_notification()
+            
 
     def notify_user(self):
         """Notify the user that they have been Enrolled in a course. Add course details and include link as well"""
@@ -37,31 +37,4 @@ class LMSEnrollment(BaseLMSEnrollment):
             frappe.msgprint("Error Notifying Employee", alert=1)
             frappe.log_error(title="Error Notifying Employee", message=e)
 
-    def send_push_notification(self):
-        import requests, json
-        headers = {
-            "Content-Type": "application/json"
-        }
-        method = '/api/method/one_fm.api.api.push_notification_rest_api_for_lms'
-        site = getattr(frappe.local.conf, 'push_notification_backend_url', None)
-        if not site:
-            frappe.log_error(title="Error Sending Notification", message="Push notification site not set in site_config.json")
-            return
-        site = site.strip("/")
-        course_title = frappe.get_value("LMS Course", self.course, 'title')
-        data = {
-            "user_id": self.member
-        }
-        message = f"""
-            Dear {self.member_name},
-            We are pleased to inform you that you have been enrolled
-            in our course titled: {course_title}.
-            Please login to the LMS Portal to start learning!
-        """
-        data['message'] = message
-        site_url = site + method
-        response = requests.post(site_url, data=json.dumps(data), headers=headers)
-        if response.status_code == 200:
-            return
-        else:
-            frappe.log_error(title="Error sending push notification", message=response.text)
+    
