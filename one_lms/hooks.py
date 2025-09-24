@@ -203,11 +203,18 @@ after_install = "one_lms.setup.setup.after_install"
 # Overriding Methods
 # ------------------------------
 #
+
+after_migrate = [
+	"one_lms.after_migrate.execute.after_migrate"
+]
+
+
 override_whitelisted_methods = {
 	"lms.lms.doctype.lms_assignment_submission.lms_assignment_submission.upload_assignment": "one_lms.overrides.lms_assignment_submission.upload_assignment",
 	"lms.lms.doctype.course_lesson.course_lesson.save_progress": "one_lms.overrides.course_lesson.save_progress",
 	"lms.lms.doctype.lms_certificate.lms_certificate.create_certificate": "one_lms.overrides.lms_certificate.create_certificate"
 }
+
 
 override_doctype_class = {
 	"LMS Batch": "one_lms.overrides.lms_batch.LMSBatch",
