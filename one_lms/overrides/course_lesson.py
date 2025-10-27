@@ -2,7 +2,7 @@ import frappe
 from lms.lms.utils import get_course_progress
 
 @frappe.whitelist()
-def save_progress(lesson, course, status):
+def save_progress(lesson, course):
 	membership = frappe.db.exists(
 		"LMS Enrollment", {"member": frappe.session.user, "course": course}
 	)
@@ -28,14 +28,14 @@ def save_progress(lesson, course, status):
 	filters = {"lesson": lesson, "owner": frappe.session.user, "course": course}
 	if frappe.db.exists("LMS Course Progress", filters):
 		doc = frappe.get_doc("LMS Course Progress", filters)
-		doc.status = status
+		doc.status = "Complete"
 		doc.save(ignore_permissions=True)
 	else:
 		frappe.get_doc(
 			{
 				"doctype": "LMS Course Progress",
 				"lesson": lesson,
-				"status": status,
+				"status": "Complete",
 				"member": frappe.session.user,
 			}
 		).save(ignore_permissions=True)
