@@ -211,7 +211,7 @@ after_migrate = [
 
 override_whitelisted_methods = {
 	"lms.lms.doctype.lms_assignment_submission.lms_assignment_submission.upload_assignment": "one_lms.overrides.lms_assignment_submission.upload_assignment",
-	"lms.lms.doctype.course_lesson.course_lesson.save_progress": "one_lms.overrides.course_lesson.save_progress",
+	#"lms.lms.doctype.course_lesson.course_lesson.save_progress": "one_lms.overrides.course_lesson.save_progress",
 	"lms.lms.doctype.lms_certificate.lms_certificate.create_certificate": "one_lms.overrides.lms_certificate.create_certificate"
 }
 
