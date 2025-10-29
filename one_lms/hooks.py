@@ -55,7 +55,8 @@ jinja = {
 	]
 }
 doctype_js = {
-	"LMS Course" : "public/js/doctype_js/lms_course.js"
+	"LMS Course" : "public/js/doctype_js/lms_course.js",
+	"Course Lesson" : "public/js/doctype_js/course_lesson.js"
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -211,7 +212,7 @@ after_migrate = [
 
 override_whitelisted_methods = {
 	"lms.lms.doctype.lms_assignment_submission.lms_assignment_submission.upload_assignment": "one_lms.overrides.lms_assignment_submission.upload_assignment",
-	#"lms.lms.doctype.course_lesson.course_lesson.save_progress": "one_lms.overrides.course_lesson.save_progress",
+	# "lms.lms.doctype.course_lesson.course_lesson.save_progress": "one_lms.overrides.course_lesson.save_progress",
 	"lms.lms.doctype.lms_certificate.lms_certificate.create_certificate": "one_lms.overrides.lms_certificate.create_certificate"
 }
 
