@@ -5,8 +5,7 @@ import frappe
 from frappe.model.document import Document
 import json
 
-class LMSEnrollmentTool(Document):
-    pass
+
 
 @frappe.whitelist()
 def enrol_to_the_course(members, course):
@@ -28,3 +27,5 @@ def enrol_to_the_course(members, course):
                 )
             )
             lms_enrollment.insert()
+class LMSEnrollmentTool(Document):
+    pass

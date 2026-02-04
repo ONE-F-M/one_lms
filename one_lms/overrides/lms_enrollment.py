@@ -5,7 +5,7 @@ from lms.lms.doctype.lms_enrollment.lms_enrollment import LMSEnrollment as BaseL
 
 class LMSEnrollment(BaseLMSEnrollment):
     def validate(self):
-        super().validate()
+        
         if self.is_new():
             self.notify_user()
             
