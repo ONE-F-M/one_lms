@@ -1,7 +1,7 @@
 import frappe
 
 no_cache = 1
-base_template_path = "lms/lms/www/lms.html"
+base_template_path = "lms/www/lms.html"
 
 
 def get_context(context):
