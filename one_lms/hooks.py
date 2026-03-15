@@ -222,7 +222,8 @@ override_doctype_class = {
 	"User": "one_lms.overrides.user.User",
 	"LMS Enrollment": "one_lms.overrides.lms_enrollment.LMSEnrollment",
 	"LMS Quiz Submission": "one_lms.overrides.lms_quiz_submission.LMSQuizSubmission",
-	"LMS Certificate": "one_lms.overrides.lms_certificate.LMSCertificate"
+	"LMS Certificate": "one_lms.overrides.lms_certificate.LMSCertificate",
+    
 }
 #
 # each overriding function accepts a `data` argument;

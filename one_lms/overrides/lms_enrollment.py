@@ -38,3 +38,18 @@ class LMSEnrollment(BaseLMSEnrollment):
             frappe.log_error(title="Error Notifying Employee", message=e)
 
     
+    def before_insert(self):
+        super().before_insert()
+        self.reset_course_progress()
+
+    def reset_course_progress(self):
+        if not frappe.db.get_value("LMS Course", self.course, "allow_reenrollments"):
+            return
+        if not frappe.db.exists("LMS Enrollment", {"course": self.course, "member": self.member}):
+            return
+        frappe.db.sql(
+            "UPDATE `tabLMS Course Progress` SET status = 'Incomplete' WHERE course = %s AND member = %s",
+            (self.course, self.member)
+        )
+
+    
