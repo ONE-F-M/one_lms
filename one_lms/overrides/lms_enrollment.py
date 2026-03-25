@@ -39,7 +39,6 @@ class LMSEnrollment(BaseLMSEnrollment):
 
     
     def before_insert(self):
-        super().before_insert()
         self.reset_course_progress()
 
     def reset_course_progress(self):
