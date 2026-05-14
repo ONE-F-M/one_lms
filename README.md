@@ -31,3 +31,8 @@ Pre-commit is configured to use the following tools for checking and formatting 
 ### License
 
 mit
+
+## Testing
+
+Run tests with: bench --site sitename run-tests --app one_lms
+
