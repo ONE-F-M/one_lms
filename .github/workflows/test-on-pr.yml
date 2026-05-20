@@ -44,7 +44,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -94,10 +94,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd ~/frappe-bench
-          source env/bin/activate
-          coverage run --source apps/one_lms/one_lms -m frappe.commands.utils run-tests --app one_lms --site test_site --failfast
-          coverage report --fail-under=30
-          coverage xml
+          bench --site test_site run-tests --app one_lms --failfast
         env:
           TYPE: server
 
