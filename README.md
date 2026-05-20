@@ -1,3 +1,5 @@
+![Coverage](https://img.shields.io/badge/coverage-30%25%2B-brightgreen)
+
 ### ONE FM LMS
 
 Extend Frappe LMS
