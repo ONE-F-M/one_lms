@@ -3,5 +3,6 @@
 
 from frappe.tests.utils import FrappeTestCase
 
+
 class TestLMSCourseEnrolmentRequest(FrappeTestCase):
-    pass
+	pass

@@ -1,7 +1,8 @@
-from one_lms.overrides.plugins import assignment_renderer, quiz_renderer
 from lms import plugins
 from lms.lms import utils as lms_utils
+
 from one_lms import utils
+from one_lms.overrides.plugins import assignment_renderer, quiz_renderer
 
 __version__ = "0.0.1"
 
