@@ -51,7 +51,7 @@ jobs:
           cache: pip
 
       - name: Download Semgrep rules
-        run: git clone --depth 1 --branch main https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
+        run: git clone --depth 1 --branch develop https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
 
       - name: Run Semgrep rules
         run: |
