@@ -5,3 +5,4 @@
 [post_model_sync]
 # Patches added in this section will be executed after doctypes are migrated
 one_lms.patches.v15_0.update_batch_confirmation_email_template
+one_lms.patches.v15_0.fix_certificate_print_format_asset_paths
