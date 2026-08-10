@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from lms.lms.doctype.lms_enrollment.lms_enrollment import LMSEnrollment as BaseLMSEnrollment
+from one_lms.overrides.lms_course import clear_course_learning_records
 
 class LMSEnrollment(BaseLMSEnrollment):
     def validate(self):
@@ -38,17 +39,37 @@ class LMSEnrollment(BaseLMSEnrollment):
             frappe.log_error(title="Error Notifying Employee", message=e)
 
     
-    def before_insert(self):
+    def after_insert(self):
         self.reset_course_progress()
 
     def reset_course_progress(self):
+        """When a member is re-enrolled in a course, wipe their previous learning
+        records so they start fresh, and drop the now-stale earlier enrollment so
+        we don't accumulate duplicate enrollments for the same member + course.
+
+        Runs in after_insert (not before_insert) so the new enrollment already
+        exists and can be excluded when removing the older duplicates.
+        """
         if not frappe.db.get_value("LMS Course", self.course, "allow_reenrollments"):
             return
-        if not frappe.db.exists("LMS Enrollment", {"course": self.course, "member": self.member}):
-            return
-        frappe.db.sql(
-            "UPDATE `tabLMS Course Progress` SET status = 'Incomplete' WHERE course = %s AND member = %s",
-            (self.course, self.member)
+
+        previous_enrollments = frappe.get_all(
+            "LMS Enrollment",
+            filters={
+                "course": self.course,
+                "member": self.member,
+                "name": ["!=", self.name],
+            },
+            pluck="name",
         )
+        if not previous_enrollments:
+            return
+
+        # Delete progress, quiz and assignment submissions. The new enrollment has
+        # none yet, so this effectively resets the member to a clean slate.
+        clear_course_learning_records(self.course, self.member)
+
+        for enrollment in previous_enrollments:
+            frappe.db.delete("LMS Enrollment", enrollment)
 
     
