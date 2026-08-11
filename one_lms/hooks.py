@@ -214,7 +214,8 @@ override_whitelisted_methods = {
 	"lms.lms.doctype.lms_assignment_submission.lms_assignment_submission.upload_assignment": "one_lms.overrides.lms_assignment_submission.upload_assignment",
 	# "lms.lms.doctype.course_lesson.course_lesson.save_progress": "one_lms.overrides.course_lesson.save_progress",
 	"lms.lms.doctype.lms_certificate.lms_certificate.create_certificate": "one_lms.overrides.lms_certificate.create_certificate",
-	"lms.lms.utils.get_batch_students": "one_lms.overrides.batch.get_batch_students"
+	"lms.lms.utils.get_batch_students": "one_lms.overrides.batch.get_batch_students",
+	"lms.lms.doctype.lms_batch_enrollment.lms_batch_enrollment.send_confirmation_email": "one_lms.overrides.lms_batch_enrollment.send_confirmation_email",
 }
 
 
@@ -224,7 +225,7 @@ override_doctype_class = {
 	"LMS Enrollment": "one_lms.overrides.lms_enrollment.LMSEnrollment",
 	"LMS Quiz Submission": "one_lms.overrides.lms_quiz_submission.LMSQuizSubmission",
 	"LMS Certificate": "one_lms.overrides.lms_certificate.LMSCertificate",
-
+	"LMS Batch Enrollment": "one_lms.overrides.lms_batch_enrollment.LMSBatchEnrollment"
 }
 #
 # each overriding function accepts a `data` argument;
