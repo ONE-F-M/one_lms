@@ -1,3 +1,5 @@
+![Coverage](https://img.shields.io/badge/coverage-30%25%2B-brightgreen)
+
 ### ONE FM LMS
 
 `one_lms` extends Frappe LMS for ONE FM training operations. It adds custom fields,
