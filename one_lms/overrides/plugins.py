@@ -1,32 +1,37 @@
 import random
-import frappe
 from urllib.parse import quote
 
+import frappe
+from frappe import _
+
+
 def assignment_renderer(detail):
-    supported_types = {
-        "Document": ".doc,.docx,.xml,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "PDF": ".pdf",
-        "Image": ".png, .jpg, .jpeg",
-        "Video": "video/*",
-    }
-    question = detail.split("-")[0]
-    file_type = frappe.db.get_value("Course Lesson", {'question': question}, 'file_type') or "PDF"
-    accept = supported_types[file_type] if file_type else ""
-    return frappe.render_template(
-        "templates/assignment.html",
-        {
-            "question": question,
-            "file_type": file_type,
-            "accept": accept,
-        },
-    )
+	supported_types = {
+		"Document": ".doc,.docx,.xml,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		"PDF": ".pdf",
+		"Image": ".png, .jpg, .jpeg",
+		"Video": "video/*",
+	}
+	question = detail.split("-")[0]
+	file_type = frappe.db.get_value("Course Lesson", {"question": question}, "file_type") or "PDF"
+	accept = supported_types[file_type] if file_type else ""
+	return frappe.render_template(
+		"templates/assignment.html",
+		{
+			"question": question,
+			"file_type": file_type,
+			"accept": accept,
+		},
+	)
+
 
 def quiz_renderer(quiz_name):
 	if frappe.session.user == "Guest":
-		return " <div class='alert alert-info'>" + _(
-			"Quiz is not available to Guest users. Please login to continue."
+		return (
+			" <div class='alert alert-info'>"
+			+ _("Quiz is not available to Guest users. Please login to continue.")
+			+ "</div>"
 		)
-		+"</div>"
 
 	quiz = frappe.db.get_value(
 		"LMS Quiz",
@@ -66,9 +71,7 @@ def quiz_renderer(quiz_name):
 
 	quiz.questions = question_list
 
-	no_of_attempts = frappe.db.count(
-		"LMS Quiz Submission", {"owner": frappe.session.user, "quiz": quiz_name}
-	)
+	no_of_attempts = frappe.db.count("LMS Quiz Submission", {"owner": frappe.session.user, "quiz": quiz_name})
 
 	if quiz.show_submission_history:
 		all_submissions = frappe.get_all(

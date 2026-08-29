@@ -1,10 +1,10 @@
 <!--
-        Available data format -> 
+        Available data format ->
         {
-                'assignment_title': 'Assignment Title', 
+                'assignment_title': 'Assignment Title',
                 'members': [{
-                        'member': 'John Doe', 
-                        'assignment_submission': 'ASG-SUB-XXXXX', 
+                        'member': 'John Doe',
+                        'assignment_submission': 'ASG-SUB-XXXXX',
                         'assignment_title': 'Assignment Title'
                 }]
         }
@@ -27,8 +27,8 @@
     <tbody>
         {% for member in members %}
                 {% set user = frappe.db.get_value("User", member.member_id, ["username"], as_dict=True) %}
-                {% set course = frappe.db.get_value("LMS Course", member["course"], ["title", "name", "image"], as_dict=True) %}    
-                {% set submission_date = frappe.db.get_value("LMS Assignment Submission", member["assignment_submission"], ["creation"], as_dict=True) %}    
+                {% set course = frappe.db.get_value("LMS Course", member["course"], ["title", "name", "image"], as_dict=True) %}
+                {% set submission_date = frappe.db.get_value("LMS Assignment Submission", member["assignment_submission"], ["creation"], as_dict=True) %}
                 <tr>
                     <td class="text-center">{{ loop.index }}</th>
                     <td class="text-center">{{ user.username }}</th>

@@ -30,7 +30,7 @@
 								<BookText class="size-4 stroke-1.5" />
 							</template>
 							<span>
-								{{ __('Continue Learning') }}
+								{{ __("Continue Learning") }}
 							</span>
 						</Button>
 					</router-link>
@@ -51,7 +51,7 @@
 							<CreditCard class="size-4 stroke-1.5" />
 						</template>
 						<span>
-							{{ __('Buy this course') }}
+							{{ __("Buy this course") }}
 						</span>
 					</Button>
 				</router-link>
@@ -60,23 +60,23 @@
 					theme="blue"
 					size="lg"
 				>
-					{{ __('Contact the Administrator to enroll for this course.') }}
+					{{ __("Contact the Administrator to enroll for this course.") }}
 				</Badge>
-                <Button
-                    v-else-if="showRequestEnrolmentButton"
-                    :disabled="requestPending"
-                    @click="requestEnrolment"
-                    variant="solid"
-                    class="w-full"
-                    size="md"
-                >
-                    <template #prefix>
-                        <BookText class="size-4 stroke-1.5" />
-                    </template>
-                    <span>
-                        {{ requestPending ? __('Request Pending') : __('Request Enrolment') }}
-                    </span>
-                </Button>
+				<Button
+					v-else-if="showRequestEnrolmentButton"
+					:disabled="requestPending"
+					@click="requestEnrolment"
+					variant="solid"
+					class="w-full"
+					size="md"
+				>
+					<template #prefix>
+						<BookText class="size-4 stroke-1.5" />
+					</template>
+					<span>
+						{{ requestPending ? __("Request Pending") : __("Request Enrolment") }}
+					</span>
+				</Button>
 
 				<Button
 					v-else-if="!user.data?.is_moderator && !is_instructor()"
@@ -89,7 +89,7 @@
 						<BookText class="size-4 stroke-1.5" />
 					</template>
 					<span>
-						{{ __('Start Learning') }}
+						{{ __("Start Learning") }}
 					</span>
 				</Button>
 				<Button
@@ -102,7 +102,7 @@
 					<template #prefix>
 						<GraduationCap class="size-4 stroke-1.5" />
 					</template>
-					{{ __('Get Certificate') }}
+					{{ __("Get Certificate") }}
 				</Button>
 				<Button
 					v-if="user.data?.is_moderator || is_instructor()"
@@ -112,7 +112,7 @@
 				>
 					<template #prefix>
 						<TrendingUp class="size-4 stroke-1.5" />
-						{{ __('Progress Summary') }}
+						{{ __("Progress Summary") }}
 					</template>
 				</Button>
 				<router-link
@@ -129,29 +129,24 @@
 							<Pencil class="size-4 stroke-1.5" />
 						</template>
 						<span>
-							{{ __('Edit') }}
+							{{ __("Edit") }}
 						</span>
 					</Button>
 				</router-link>
 			</div>
 			<div class="space-y-4">
-				<div
-					class="font-medium text-ink-gray-9"
-					:class="{ 'mt-8': !readOnlyMode }"
-				>
-					{{ __('This course has:') }}
+				<div class="font-medium text-ink-gray-9" :class="{ 'mt-8': !readOnlyMode }">
+					{{ __("This course has:") }}
 				</div>
 				<div class="flex items-center text-ink-gray-9">
 					<BookOpen class="h-4 w-4 stroke-1.5" />
-					<span class="ml-2">
-						{{ course.data.lessons }} {{ __('Lessons') }}
-					</span>
+					<span class="ml-2"> {{ course.data.lessons }} {{ __("Lessons") }} </span>
 				</div>
 				<div class="flex items-center text-ink-gray-9">
 					<Users class="h-4 w-4 stroke-1.5" />
 					<span class="ml-2">
 						{{ formatAmount(course.data.enrollments) }}
-						{{ __('Enrolled Students') }}
+						{{ __("Enrolled Students") }}
 					</span>
 				</div>
 				<div
@@ -159,9 +154,7 @@
 					class="flex items-center text-ink-gray-9"
 				>
 					<Star class="size-4 stroke-1.5 fill-yellow-500 text-transparent" />
-					<span class="ml-2">
-						{{ course.data.rating }} {{ __('Rating') }}
-					</span>
+					<span class="ml-2"> {{ course.data.rating }} {{ __("Rating") }} </span>
 				</div>
 				<div
 					v-if="course.data.enable_certification"
@@ -169,7 +162,7 @@
 				>
 					<GraduationCap class="h-4 w-4 stroke-2" />
 					<span class="ml-2">
-						{{ __('Certificate of Completion') }}
+						{{ __("Certificate of Completion") }}
 					</span>
 				</div>
 				<div
@@ -178,7 +171,7 @@
 				>
 					<GraduationCap class="h-4 w-4 stroke-2" />
 					<span class="ml-2">
-						{{ __('Paid Certificate after Evaluation') }}
+						{{ __("Paid Certificate after Evaluation") }}
 					</span>
 				</div>
 			</div>
@@ -200,154 +193,167 @@ import {
 	Star,
 	TrendingUp,
 	Users,
-} from 'lucide-vue-next'
-import { computed, inject, ref, onMounted } from 'vue'
-import { Badge, Button, call, createResource, toast } from 'frappe-ui'
-import { formatAmount } from '@/utils/'
-import { capture } from '@/telemetry'
-import { useRouter } from 'vue-router'
-import CertificationLinks from '@/components/CertificationLinks.vue'
-import CourseProgressSummary from '@/components/Modals/CourseProgressSummary.vue'
+} from "lucide-vue-next";
+import { computed, inject, ref, onMounted } from "vue";
+import { Badge, Button, call, createResource, toast } from "frappe-ui";
+import { formatAmount } from "@/utils/";
+import { capture } from "@/telemetry";
+import { useRouter } from "vue-router";
+import CertificationLinks from "@/components/CertificationLinks.vue";
+import CourseProgressSummary from "@/components/Modals/CourseProgressSummary.vue";
 
-const router = useRouter()
-const user = inject('$user')
-const showProgressModal = ref(false)
-const readOnlyMode = window.read_only_mode
+const router = useRouter();
+const user = inject("$user");
+const showProgressModal = ref(false);
+const readOnlyMode = window.read_only_mode;
 
 const props = defineProps({
 	course: {
 		type: Object,
 		default: null,
 	},
-})
+});
 
 const video_link = computed(() => {
 	if (props.course.data.video_link) {
-		return 'https://www.youtube.com/embed/' + props.course.data.video_link
+		return "https://www.youtube.com/embed/" + props.course.data.video_link;
 	}
-	return null
-})
+	return null;
+});
 
-const requestPending = ref(false)
+const requestPending = ref(false);
 const showRequestEnrolmentButton = computed(() => {
-    return (!props.course.data.membership && user.data && user.data.name !== 'Guest' && props.course.data.disable_self_learning)
-})
+	return (
+		!props.course.data.membership &&
+		user.data &&
+		user.data.name !== "Guest" &&
+		props.course.data.disable_self_learning
+	);
+});
 
 function requestEnrolment() {
-    if (!user.data || user.data.name === 'Guest') {
-        window.location.href = `/login?redirect-to=/courses/${encodeURIComponent(props.course.data.name)}`
-        return
-    }
-    call('one_lms.one_lms.doctype.lms_course_enrolment_request.lms_course_enrolment_request.create_lms_course_enrolment_request', {
-        course: props.course.data.name,
-        member: user.data.name
-    })
-        .then((data) => {
-            if (data === 'OK') {
-                toast.success(__('Enrollment request sent successfully'))
-                requestPending.value = true
-            }
-        })
-        .catch((err) => {
-            toast.warning(__(err.messages?.[0] || err))
-            console.error(err)
-        })
+	if (!user.data || user.data.name === "Guest") {
+		window.location.href = `/login?redirect-to=/courses/${encodeURIComponent(
+			props.course.data.name
+		)}`;
+		return;
+	}
+	call(
+		"one_lms.one_lms.doctype.lms_course_enrolment_request.lms_course_enrolment_request.create_lms_course_enrolment_request",
+		{
+			course: props.course.data.name,
+			member: user.data.name,
+		}
+	)
+		.then((data) => {
+			if (data === "OK") {
+				toast.success(__("Enrollment request sent successfully"));
+				requestPending.value = true;
+			}
+		})
+		.catch((err) => {
+			toast.warning(__(err.messages?.[0] || err));
+			console.error(err);
+		});
 }
 function checkPendingRequest() {
-    if (!showRequestEnrolmentButton.value) return
-    call('one_lms.one_lms.doctype.lms_course_enrolment_request.lms_course_enrolment_request.has_pending_request', {
-        course: props.course.data.name,
-        member: user.data.name
-    })
-        .then((data) => {
-            if (data) {
-                requestPending.value = true
-            }
-        })
-        .catch((err) => {})
+	if (!showRequestEnrolmentButton.value) return;
+	call(
+		"one_lms.one_lms.doctype.lms_course_enrolment_request.lms_course_enrolment_request.has_pending_request",
+		{
+			course: props.course.data.name,
+			member: user.data.name,
+		}
+	)
+		.then((data) => {
+			if (data) {
+				requestPending.value = true;
+			}
+		})
+		.catch((err) => {});
 }
 onMounted(() => {
-    checkPendingRequest()
-})
+	checkPendingRequest();
+});
 
 function enrollStudent() {
 	if (!user.data) {
-		toast.success(__('You need to login first to enroll for this course'))
+		toast.success(__("You need to login first to enroll for this course"));
 		setTimeout(() => {
-			window.location.href = `/login?redirect-to=${window.location.pathname}`
-		}, 500)
+			window.location.href = `/login?redirect-to=${window.location.pathname}`;
+		}, 500);
 	} else {
-		call('lms.lms.doctype.lms_enrollment.lms_enrollment.create_membership', {
+		call("lms.lms.doctype.lms_enrollment.lms_enrollment.create_membership", {
 			course: props.course.data.name,
 		})
 			.then(() => {
-				capture('enrolled_in_course', {
+				capture("enrolled_in_course", {
 					course: props.course.data.name,
-				})
-				toast.success(__('You have been enrolled in this course'))
+				});
+				toast.success(__("You have been enrolled in this course"));
 				setTimeout(() => {
 					router.push({
-						name: 'Lesson',
+						name: "Lesson",
 						params: {
 							courseName: props.course.data.name,
 							chapterNumber: 1,
 							lessonNumber: 1,
 						},
-					})
-				}, 1000)
+					});
+				}, 1000);
 			})
 			.catch((err) => {
-				toast.warning(__(err.messages?.[0] || err))
-				console.error(err)
-			})
+				toast.warning(__(err.messages?.[0] || err));
+				console.error(err);
+			});
 	}
 }
 
 const is_instructor = () => {
-	let user_is_instructor = false
+	let user_is_instructor = false;
 	props.course.data.instructors.forEach((instructor) => {
 		if (!user_is_instructor && instructor.name == user.data?.name) {
-			user_is_instructor = true
+			user_is_instructor = true;
 		}
-	})
-	return user_is_instructor
-}
+	});
+	return user_is_instructor;
+};
 
 const canGetCertificate = computed(() => {
 	if (
 		props.course.data?.enable_certification &&
 		props.course.data?.membership?.progress == 100
 	) {
-		return true
+		return true;
 	}
-	return false
-})
+	return false;
+});
 
 const certificate = createResource({
-	url: 'lms.lms.doctype.lms_certificate.lms_certificate.create_certificate',
+	url: "lms.lms.doctype.lms_certificate.lms_certificate.create_certificate",
 	makeParams(values) {
 		return {
 			course: values.course,
-		}
+		};
 	},
 	onSuccess(data) {
 		window.open(
 			`/api/method/frappe.utils.print_format.download_pdf?doctype=LMS+Certificate&name=${
 				data.name
 			}&format=${encodeURIComponent(data.template)}`,
-			'_blank'
-		)
+			"_blank"
+		);
 	},
-})
+});
 
 const fetchCertificate = () => {
 	certificate.submit({
 		course: props.course.data?.name,
 		member: user.data?.name,
-	})
-}
+	});
+};
 
 const showProgressSummary = () => {
-	showProgressModal.value = true
-}
+	showProgressModal.value = true;
+};
 </script>

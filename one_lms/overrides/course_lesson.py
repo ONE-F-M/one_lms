@@ -1,12 +1,12 @@
 import frappe
 from lms.lms.utils import get_course_progress
+
 from ...md import find_macros
+
 
 @frappe.whitelist()
 def save_progress(lesson, course):
-	membership = frappe.db.exists(
-		"LMS Enrollment", {"member": frappe.session.user, "course": course}
-	)
+	membership = frappe.db.exists("LMS Enrollment", {"member": frappe.session.user, "course": course})
 	if not membership:
 		return 0
 

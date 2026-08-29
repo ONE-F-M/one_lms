@@ -30,7 +30,7 @@ fixtures = ["Translation"]
 app_include_css = "/assets/one_lms/css/frappe_tinymce.css"
 app_include_js = [
 	"https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.2.0/tinymce.min.js",
-	"/assets/one_lms/js/frappe_tinymce.js"
+	"/assets/one_lms/js/frappe_tinymce.js",
 ]
 
 # include js, css files in header of web template
@@ -55,8 +55,8 @@ jinja = {
 	]
 }
 doctype_js = {
-	"LMS Course" : "public/js/doctype_js/lms_course.js",
-	"Course Lesson" : "public/js/doctype_js/course_lesson.js"
+	"LMS Course": "public/js/doctype_js/lms_course.js",
+	"Course Lesson": "public/js/doctype_js/course_lesson.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -82,17 +82,15 @@ doctype_js = {
 scheduler_events = {
 	"cron": {
 		"50 23 * * *": [
-			'one_lms.notification.notifications.notify_course_completion',
-			'one_lms.notification.notifications.notify_assignment_submission',
-			'one_lms.notification.notifications.notify_quiz_submission'
+			"one_lms.notification.notifications.notify_course_completion",
+			"one_lms.notification.notifications.notify_assignment_submission",
+			"one_lms.notification.notifications.notify_quiz_submission",
 		]
 	}
 }
 
 # Template Overrides
-override_template = {
-	"courses/course.html": "one_lms/www/courses/custom_course.html"
-}
+override_template = {"courses/course.html": "one_lms/www/courses/custom_course.html"}
 
 # Generators
 # ----------
@@ -205,15 +203,13 @@ after_install = "one_lms.setup.setup.after_install"
 # ------------------------------
 #
 
-after_migrate = [
-	"one_lms.after_migrate.execute.after_migrate"
-]
+after_migrate = ["one_lms.after_migrate.execute.after_migrate"]
 
 
 override_whitelisted_methods = {
 	"lms.lms.doctype.lms_assignment_submission.lms_assignment_submission.upload_assignment": "one_lms.overrides.lms_assignment_submission.upload_assignment",
 	# "lms.lms.doctype.course_lesson.course_lesson.save_progress": "one_lms.overrides.course_lesson.save_progress",
-	"lms.lms.doctype.lms_certificate.lms_certificate.create_certificate": "one_lms.overrides.lms_certificate.create_certificate"
+	"lms.lms.doctype.lms_certificate.lms_certificate.create_certificate": "one_lms.overrides.lms_certificate.create_certificate",
 }
 
 
@@ -223,7 +219,6 @@ override_doctype_class = {
 	"LMS Enrollment": "one_lms.overrides.lms_enrollment.LMSEnrollment",
 	"LMS Quiz Submission": "one_lms.overrides.lms_quiz_submission.LMSQuizSubmission",
 	"LMS Certificate": "one_lms.overrides.lms_certificate.LMSCertificate",
-
 }
 #
 # each overriding function accepts a `data` argument;
@@ -289,4 +284,3 @@ override_doctype_class = {
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-
