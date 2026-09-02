@@ -203,7 +203,7 @@ def notify_quiz_submission():
 	for item in submission_details:
 		if item.course not in submissions:
 			submissions[item.course] = {'course': item.course,  'quiz': frappe.db.get_value('LMS Quiz', item.quiz, 'title'), 'members': [], 'names': []}
-		member_details = {'member': item.member_name, 'member_id': item.member, 'quiz_submission': item.name, 'score': item.score, 'result': item.result}
+		member_details = {'member': item.member_name, 'member_id': item.member, 'quiz_submission': item.name, 'score': item.score, 'result': item.result, 'course': item.course}
 		submissions[item.course]['members'].append(member_details)
 		submissions[item.course]['names'].append(item.name)
 	submissions = list(submissions.values())
@@ -232,6 +232,7 @@ def notify_quiz_submission():
 
 		if instructors and len(instructors) > 0:
 			args = {
+				"course": submission['course'],
 				"quiz": submission['quiz'],
 				"members": submission['members']
 			}
