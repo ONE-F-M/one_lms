@@ -1,4 +1,20 @@
-<!--
+import frappe
+
+TEMPLATE_NAME = "Daily Quiz Submission"
+
+# Body for the daily quiz submission digest sent by
+# one_lms.notification.notifications.notify_quiz_submission. This mirrors
+# one_lms/templates/emails/lms_quiz_submission_group_template.html — the record
+# below wins whenever LMS Settings.quiz_submission_template is set, so the two
+# must be kept in sync.
+#
+# The previous body resolved the course with a bare `course` variable that the
+# notification never passed. An undefined name is falsy in Jinja, so
+# frappe.db.get_value("LMS Course", course, ...) ran without a filter and
+# returned the first tabLMS Course row by `modified desc` — every digest showed
+# that one course no matter which quiz was submitted. The body now reads the
+# course and quiz from each LMS Quiz Submission row instead.
+RESPONSE_HTML = """<!--
 	Available data format -> 
 	{
 		'course': 'avsec-awareness-awareness-course', 
@@ -49,4 +65,20 @@
 		</tr>
 	{% endfor %}
     </tbody>
-</table>
+</table>"""
+
+SUBJECT = "Daily Quiz Submission Information"
+
+
+def execute():
+    """Fix the course name shown in the Daily Quiz Submission email template."""
+
+    if not frappe.db.exists("Email Template", TEMPLATE_NAME):
+        # Nothing to update on sites that don't use this template.
+        return
+
+    doc = frappe.get_doc("Email Template", TEMPLATE_NAME)
+    doc.use_html = 1
+    doc.subject = SUBJECT
+    doc.response_html = RESPONSE_HTML
+    doc.save(ignore_permissions=True)

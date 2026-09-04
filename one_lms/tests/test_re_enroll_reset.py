@@ -141,16 +141,19 @@ class TestReEnrollReset(FrappeTestCase):
         self.assertEqual(enrollment.progress, 0)
         self.assertIn(enrollment.current_lesson, (None, ""))
 
-    def test_no_reset_when_reenrollment_disabled(self):
-        """With allow_reenrollments off, a new enrollment must not wipe records
-        or delete the previous enrollment."""
+    def test_duplicate_enrollment_rejected_when_reenrollment_disabled(self):
+        """With allow_reenrollments off, a second enrollment for the same
+        member + course must be rejected outright - it would neither reset the
+        member nor be usable, it would just be a duplicate row."""
         self.course = self._create_course(
             allow_reenrollments=0, suffix=frappe.generate_hash(length=6)
         )
         first = self._create_enrollment()
         self._seed_learning_records()
 
-        second = self._create_enrollment()
+        with self.assertRaises(frappe.ValidationError):
+            self._create_enrollment()
 
+        # The original enrollment and its learning records are left untouched.
         self._assert_learning_records(1)
-        self.assertCountEqual(self._enrollment_names(), [first.name, second.name])
+        self.assertEqual(self._enrollment_names(), [first.name])
