@@ -210,8 +210,20 @@ after_migrate = [
 ]
 
 
+doc_events = {
+	# A lesson that hosts a quiz must not count towards course progress until
+	# the quiz is passed - see one_lms.quiz_gate for the whole story.
+	"LMS Course Progress": {
+		"before_save": "one_lms.quiz_gate.hold_quiz_lesson_until_passed"
+	}
+}
+
+
 override_whitelisted_methods = {
 	"lms.lms.doctype.lms_assignment_submission.lms_assignment_submission.upload_assignment": "one_lms.overrides.lms_assignment_submission.upload_assignment",
+	# Left disabled on purpose: this override predates the current upstream
+	# save_progress (badges, analytics, realtime, assignment gating) and would
+	# regress all of it. Quiz gating lives in one_lms.quiz_gate instead.
 	# "lms.lms.doctype.course_lesson.course_lesson.save_progress": "one_lms.overrides.course_lesson.save_progress",
 	"lms.lms.doctype.lms_certificate.lms_certificate.create_certificate": "one_lms.overrides.lms_certificate.create_certificate",
 	"lms.lms.utils.get_batch_students": "one_lms.overrides.batch.get_batch_students",
