@@ -1,8 +1,8 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_years, nowdate
-from lms.lms.utils import is_certified
+from frappe.utils import add_years, cint, flt, nowdate
+from lms.lms.utils import get_course_progress, has_course_moderator_role, is_certified
 from frappe.email.doctype.email_template.email_template import get_email_template
 from lms.lms.doctype.lms_certificate.lms_certificate import LMSCertificate as BaseLMSCertificate
 
@@ -34,40 +34,74 @@ class LMSCertificate(BaseLMSCertificate):
         )
 
 @frappe.whitelist()
-def create_certificate(course):
+def create_certificate(course: str):
 	certificate = is_certified(course)
 
 	if certificate:
 		return certificate
 
+	validate_course_completed(course)
+
+	course_certificate_template = frappe.db.get_value("LMS Course", course, "template")
+	if course_certificate_template:
+		default_certificate_template = course_certificate_template
 	else:
-		expires_after_yrs = int(frappe.db.get_value("LMS Course", course, "expiry"))
-		expiry_date = None
-		if expires_after_yrs:
-			expiry_date = add_years(nowdate(), expires_after_yrs)
-
-		course_certificate_template = frappe.db.get_value("LMS Course", course, "template")
-		if course_certificate_template:
-			default_certificate_template = course_certificate_template
-		else:
-			default_certificate_template = frappe.db.get_value(
-				"Property Setter",
-				{
-					"doc_type": "LMS Certificate",
-					"property": "default_print_format",
-				},
-				"value",
-			)
-
-		certificate = frappe.get_doc(
+		default_certificate_template = frappe.db.get_value(
+			"Property Setter",
 			{
-				"doctype": "LMS Certificate",
-				"member": frappe.session.user,
-				"course": course,
-				"issue_date": nowdate(),
-				"expiry_date": expiry_date,
-				"template": default_certificate_template,
-			}
+				"doc_type": "LMS Certificate",
+				"property": "default_print_format",
+			},
+			"value",
 		)
-		certificate.save(ignore_permissions=True)
-		return certificate
+
+	certificate = frappe.get_doc(
+		{
+			"doctype": "LMS Certificate",
+			"member": frappe.session.user,
+			"course": course,
+			"issue_date": nowdate(),
+			"expiry_date": get_expiry_date(course),
+			"template": default_certificate_template,
+		}
+	)
+	certificate.save(ignore_permissions=True)
+	return certificate
+
+
+def validate_course_completed(course: str):
+	"""Only a member who has finished the whole course may generate its certificate.
+
+	The 100% rule used to be enforced in the portal alone - the Get Certificate
+	button is hidden below 100% - so calling this method directly issued a
+	certificate for an unfinished course. Progress is recomputed rather than read
+	off the enrollment row, which can be stale.
+	"""
+	if frappe.session.user == "Administrator" or has_course_moderator_role():
+		return
+
+	if not frappe.db.exists("LMS Enrollment", {"course": course, "member": frappe.session.user}):
+		frappe.throw(_("You are not enrolled in this course."), title=_("Not Enrolled"))
+
+	progress = flt(get_course_progress(course))
+	if progress < 100:
+		frappe.throw(
+			_("Your certificate becomes available once the course is 100% complete. You are at {0}%.").format(
+				flt(progress, 2)
+			),
+			title=_("Course Not Completed"),
+		)
+
+
+def get_expiry_date(course: str):
+	"""Certificate expiry, when the course defines one.
+
+	Guarded with a meta check: `LMS Course.expiry` is read here but has never been
+	defined as a field on this site, so the unguarded read raised "Unknown column"
+	for every certificate the portal tried to generate.
+	"""
+	if not frappe.get_meta("LMS Course").has_field("expiry"):
+		return None
+
+	expires_after_yrs = cint(frappe.db.get_value("LMS Course", course, "expiry"))
+	return add_years(nowdate(), expires_after_yrs) if expires_after_yrs else None
