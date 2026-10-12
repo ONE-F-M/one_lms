@@ -7,7 +7,7 @@ from lms.lms.doctype.course_lesson.course_lesson import save_progress
 from lms.lms.utils import get_course_progress
 
 from one_lms.overrides.lms_certificate import create_certificate
-from one_lms.quiz_gate import QuizLockedError
+from one_lms.quiz_gate import QuizLockedError, get_quiz_lock_status
 
 PASSING_PERCENTAGE = 80
 MARKS_OUT_OF = 10
@@ -231,3 +231,40 @@ class TestQuizGate(FrappeTestCase):
 
         with self.assertRaises(frappe.ValidationError):
             create_certificate(self.course)
+
+    # ------------------------------------------------- portal lock status
+    def test_lock_status_reports_locked_before_prerequisites(self):
+        """The portal must be able to show the lock before the learner answers.
+
+        `quiz_summary` only creates the submission once the whole paper is
+        answered, so the UI needs this read-only check up front.
+        """
+        status = get_quiz_lock_status(self.quiz)
+
+        self.assertTrue(status["locked"])
+        self.assertEqual(status["pending_count"], len(self.content_lessons))
+        self.assertEqual(status["total_count"], len(self.content_lessons))
+        self.assertEqual(status["next_lesson"], self.content_lessons[0])
+        self.assertIn("Module One", status["message"])
+
+    def test_lock_status_clears_once_prerequisites_are_complete(self):
+        self._complete_content_lessons()
+
+        status = get_quiz_lock_status(self.quiz)
+
+        self.assertFalse(status["locked"])
+        self.assertIsNone(status["next_lesson"])
+
+    def test_lock_status_agrees_with_enforcement(self):
+        """The shown lock and the applied lock come from one evaluator."""
+        self.assertTrue(get_quiz_lock_status(self.quiz)["locked"])
+        with self.assertRaises(QuizLockedError):
+            self._submit_quiz(MARKS_OUT_OF)
+
+        self._complete_content_lessons()
+
+        self.assertFalse(get_quiz_lock_status(self.quiz)["locked"])
+        self._submit_quiz(MARKS_OUT_OF)
+
+    def test_lock_status_is_unlocked_for_an_unknown_quiz(self):
+        self.assertFalse(get_quiz_lock_status("no-such-quiz")["locked"])
