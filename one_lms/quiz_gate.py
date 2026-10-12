@@ -26,7 +26,17 @@ realtime updates and assignment gating keep working:
 * `mark_quiz_lesson_complete` promotes that row once they pass, and refreshes
   the enrollment progress;
 * `validate_quiz_prerequisites` blocks a new submission while any lesson that
-  precedes the quiz lesson in the course outline is still incomplete.
+  precedes the quiz lesson in the course outline is still incomplete;
+* `get_quiz_lock_status` is the read-only portal endpoint behind the lock shown
+  on the lesson page. It and the enforcement above both read
+  `evaluate_quiz_gate`, so what the learner is shown and what the server applies
+  cannot drift apart.
+
+Related modules:
+
+* `one_lms.quiz_gate_audit` - read-only reports to review before backfilling;
+* `one_lms.quiz_gate_backfill` - corrects enrollments that predate the gate;
+* `one_lms.frontend_sync` - keeps the portal overrides and vendored `lms` in step.
 """
 
 import frappe
@@ -258,33 +268,125 @@ def refresh_enrollment_progress(enrollment: str, course: str, member: str):
 	update_program_progress(member)
 
 
-def validate_quiz_prerequisites(quiz: str, member: str = None, course: str = None):
-	"""Throw unless every lesson before the quiz lesson is completed."""
+def evaluate_quiz_gate(quiz: str, member: str = None, course: str = None) -> frappe._dict:
+	"""Single source of truth for whether `member` may sit `quiz` right now.
+
+	Both the enforcement path (`validate_quiz_prerequisites`) and the portal
+	(`get_quiz_lock_status`) read this, so the lock a learner is shown can never
+	disagree with the lock the server applies.
+	"""
 	member = member or frappe.session.user
+
+	state = frappe._dict(
+		{
+			"quiz": quiz,
+			"locked": False,
+			"lesson": None,
+			"course": None,
+			"pending_count": 0,
+			"total_count": 0,
+			"next_lesson": None,
+			"next_lesson_title": None,
+		}
+	)
 
 	lesson = get_lesson_of_quiz(quiz)
 	if not lesson:
 		# A standalone quiz that is not part of any course outline - nothing to gate.
-		return
+		return state
 
-	course = course or get_course_of_lesson(lesson)
-	if not course:
-		return
+	state.lesson = lesson
+	state.course = course or get_course_of_lesson(lesson)
+	if not state.course:
+		return state
 
-	if can_bypass_gate(course, member):
-		return
+	if can_bypass_gate(state.course, member):
+		return state
 
-	preceding = get_lessons_before(course, lesson)
+	preceding = get_lessons_before(state.course, lesson)
 	incomplete = get_incomplete_lessons(preceding, member)
+
+	state.total_count = len(preceding)
+	state.pending_count = len(incomplete)
 	if not incomplete:
+		return state
+
+	state.locked = True
+	state.next_lesson = incomplete[0]
+	state.next_lesson_title = (
+		frappe.db.get_value("Course Lesson", incomplete[0], "title") or incomplete[0]
+	)
+	return state
+
+
+def get_lock_message(state: frappe._dict) -> str:
+	"""The sentence shown to a learner who is held out of a quiz."""
+	return _(
+		"This quiz unlocks once you have completed every earlier lesson of the course. "
+		"{0} of {1} earlier lessons are still pending - continue from <b>{2}</b>."
+	).format(
+		state.pending_count,
+		state.total_count,
+		frappe.utils.escape_html(state.next_lesson_title or ""),
+	)
+
+
+def validate_quiz_prerequisites(quiz: str, member: str = None, course: str = None):
+	"""Throw unless every lesson before the quiz lesson is completed."""
+	state = evaluate_quiz_gate(quiz, member, course)
+	if not state.locked:
 		return
 
-	next_lesson_title = frappe.db.get_value("Course Lesson", incomplete[0], "title")
 	frappe.throw(
-		_(
-			"This quiz unlocks once you have completed every earlier lesson of the course. "
-			"{0} of {1} earlier lessons are still pending - continue from <b>{2}</b>."
-		).format(len(incomplete), len(preceding), frappe.utils.escape_html(next_lesson_title or incomplete[0])),
+		get_lock_message(state),
 		title=_("Complete the course content first"),
 		exc=QuizLockedError,
 	)
+
+
+# ------------------------------------------------------------------ portal API
+@frappe.whitelist()
+def get_quiz_lock_status(quiz: str) -> dict:
+	"""Can the current user start this quiz? Read-only, for the lesson page.
+
+	The portal calls this before rendering the Start button, so a held-back
+	learner is told what to finish *before* sitting the quiz instead of after
+	answering every question - `quiz_summary` only creates the submission (and
+	only then throws) once the whole paper has been answered.
+
+	Reports unlocked for a user with no enrollment on the course: they have no
+	business in the quiz at all, and answering fully would leak the course
+	outline to someone who cannot see it. The server-side gate in
+	`validate_quiz_prerequisites` remains the real enforcement either way.
+	"""
+	unlocked = {
+		"locked": False,
+		"pending_count": 0,
+		"total_count": 0,
+		"next_lesson": None,
+		"next_lesson_title": None,
+		"message": None,
+		"title": None,
+	}
+
+	if not quiz or not frappe.db.exists("LMS Quiz", quiz):
+		return unlocked
+
+	state = evaluate_quiz_gate(quiz, frappe.session.user)
+	if not state.locked:
+		return unlocked
+
+	if not frappe.db.exists(
+		"LMS Enrollment", {"course": state.course, "member": frappe.session.user}
+	):
+		return unlocked
+
+	return {
+		"locked": True,
+		"pending_count": state.pending_count,
+		"total_count": state.total_count,
+		"next_lesson": state.next_lesson,
+		"next_lesson_title": state.next_lesson_title,
+		"message": get_lock_message(state),
+		"title": _("Complete the course content first"),
+	}
