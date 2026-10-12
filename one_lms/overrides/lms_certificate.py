@@ -96,9 +96,11 @@ def validate_course_completed(course: str):
 def get_expiry_date(course: str):
 	"""Certificate expiry, when the course defines one.
 
-	Guarded with a meta check: `LMS Course.expiry` is read here but has never been
-	defined as a field on this site, so the unguarded read raised "Unknown column"
-	for every certificate the portal tried to generate.
+	`LMS Course.expiry` is created by one_lms as a custom field (see
+	one_lms/custom/custom_field/lms_course.py). The meta check stays because the
+	field only exists after `bench migrate` has run the setup hook - without it an
+	un-migrated site raised "Unknown column" for every certificate the portal
+	tried to generate.
 	"""
 	if not frappe.get_meta("LMS Course").has_field("expiry"):
 		return None
