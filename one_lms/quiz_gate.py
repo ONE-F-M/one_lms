@@ -41,13 +41,25 @@ Related modules:
 
 import frappe
 from frappe import _
-from frappe.utils import cint, today
+from frappe.utils import cint, getdate, today
 from lms.lms.utils import get_course_progress, is_instructor
 
 from one_lms.overrides.lms_enrollment import update_program_progress
 
 # Staff who must be able to sit a quiz out of order to review or demo a course.
 GATE_BYPASS_ROLES = ("Administrator", "System Manager", "Moderator", "Course Creator")
+
+# The date the prerequisite rule went live. Enrollments older than this are not
+# held to it.
+#
+# The rule was introduced to learners who had already worked through a course
+# under the old behaviour, where skipping a lesson was never challenged and the
+# course page rounded their progress up to "100% completed". Applying it
+# retroactively left them unable to submit a quiz they had every reason to think
+# they had earned, with no way to find out why - the tickets this module was
+# written to prevent. They are let through; anyone enrolled on or after this
+# date completes every lesson as normal.
+GATE_EFFECTIVE_FROM = "2026-10-12"
 
 
 class QuizLockedError(frappe.ValidationError):
@@ -161,12 +173,35 @@ def get_incomplete_lessons(lessons: list[str], member: str) -> list[str]:
 	return [lesson for lesson in lessons if lesson not in completed]
 
 
+def is_pre_gate_enrollment(course: str, member: str) -> bool:
+	"""Was this member enrolled before the prerequisite rule existed?
+
+	Read from the enrollment's own `creation`, so nothing has to be stamped on
+	existing rows and the answer cannot drift. A member with no enrollment is
+	not pre-gate - they have no standing on the course at all.
+	"""
+	if not course or not member:
+		return False
+
+	enrolled_on = frappe.db.get_value(
+		"LMS Enrollment", {"course": course, "member": member}, "creation"
+	)
+	if not enrolled_on:
+		return False
+
+	return getdate(enrolled_on) < getdate(GATE_EFFECTIVE_FROM)
+
+
 def can_bypass_gate(course: str, member: str) -> bool:
 	if frappe.flags.in_migrate or frappe.flags.in_patch or frappe.flags.in_install:
 		return True
 
 	# Recorded on someone else's behalf - an instructor or the enrollment tools.
 	if member != frappe.session.user:
+		return True
+
+	# Enrolled before the rule existed - see GATE_EFFECTIVE_FROM.
+	if is_pre_gate_enrollment(course, member):
 		return True
 
 	if any(role in frappe.get_roles(member) for role in GATE_BYPASS_ROLES):

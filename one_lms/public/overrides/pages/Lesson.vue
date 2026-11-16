@@ -94,7 +94,7 @@
 								<div
 									class="hidden group-hover:block rounded bg-gray-900 px-2 py-1 text-xs text-white shadow-xl absolute left-0 top-full mt-2"
 								>
-									{{ Math.ceil(lesson.data.membership.progress) }}%
+									{{ Math.floor(lesson.data.membership.progress) }}%
 									{{ __('completed') }}
 								</div>
 							</div>
@@ -270,7 +270,7 @@
 						v-if="user && lesson.data.membership"
 						class="text-sm mt-4 mb-2 text-ink-gray-5"
 					>
-						{{ Math.ceil(lessonProgress) }}% {{ __('completed') }}
+						{{ Math.floor(lessonProgress) }}% {{ __('completed') }}
 					</div>
 
 					<ProgressBar

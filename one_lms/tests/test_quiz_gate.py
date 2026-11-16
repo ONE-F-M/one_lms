@@ -3,11 +3,16 @@
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
+from frappe.utils import add_days
 from lms.lms.doctype.course_lesson.course_lesson import save_progress
 from lms.lms.utils import get_course_progress
 
 from one_lms.overrides.lms_certificate import create_certificate
-from one_lms.quiz_gate import QuizLockedError, get_quiz_lock_status
+from one_lms.quiz_gate import (
+    GATE_EFFECTIVE_FROM,
+    QuizLockedError,
+    get_quiz_lock_status,
+)
 
 PASSING_PERCENTAGE = 80
 MARKS_OUT_OF = 10
@@ -204,6 +209,33 @@ class TestQuizGate(FrappeTestCase):
         self.assertEqual(
             frappe.db.get_value("LMS Enrollment", self.enrollment, "progress"), 100
         )
+
+    def _backdate_enrollment(self, creation):
+        """Move the enrollment's creation, as a pre-gate record would be."""
+        frappe.db.set_value(
+            "LMS Enrollment", self.enrollment, "creation", creation, update_modified=False
+        )
+
+    def test_enrollment_from_before_the_gate_is_not_blocked(self):
+        """Learners enrolled under the old rules keep their unfinished lessons.
+
+        They were never told a lesson was outstanding, so the rule is not applied
+        to them retroactively - see GATE_EFFECTIVE_FROM.
+        """
+        self._backdate_enrollment(add_days(GATE_EFFECTIVE_FROM, -1))
+
+        submission = self._submit_quiz(MARKS_OUT_OF)
+
+        self.assertEqual(submission.percentage, 100)
+        self.assertFalse(get_quiz_lock_status(self.quiz)["locked"])
+
+    def test_enrollment_from_the_day_the_gate_began_is_blocked(self):
+        """The cutoff is exclusive: enrolled on the day itself, the rule applies."""
+        self._backdate_enrollment(GATE_EFFECTIVE_FROM)
+
+        self.assertTrue(get_quiz_lock_status(self.quiz)["locked"])
+        with self.assertRaises(QuizLockedError):
+            self._submit_quiz(MARKS_OUT_OF)
 
     def test_failed_attempt_leaves_the_course_incomplete(self):
         self._complete_content_lessons()
