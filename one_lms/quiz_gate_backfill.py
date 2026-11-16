@@ -115,9 +115,9 @@ def plan(course: str = None):
 				}
 
 
-def _apply(action: dict):
+def _apply(action: dict, promote_only: bool = False):
 	"""Write one enrollment's corrections, then recompute its progress."""
-	for lesson in action["downgrade"]:
+	for lesson in [] if promote_only else action["downgrade"]:
 		name = frappe.db.exists(
 			"LMS Course Progress", {"lesson": lesson, "member": action["member"]}
 		)
@@ -146,15 +146,28 @@ def _apply(action: dict):
 	refresh_enrollment_progress(action["enrollment"], action["course"], action["member"])
 
 
-def run(dry_run: bool = True, course: str = None, batch_size: int = BATCH_SIZE) -> dict:
+def run(
+	dry_run: bool = True,
+	course: str = None,
+	batch_size: int = BATCH_SIZE,
+	promote_only: bool = False,
+) -> dict:
 	"""Correct every affected enrollment. Dry run by default.
 
 	Idempotent: a second run finds nothing to do, because `plan` reads the state
 	the first run left behind. Safe to re-run after fixing data problems that
 	`one_lms.quiz_gate_audit.data_hygiene_report` turned up.
+
+	`promote_only` restricts the run to the half that only ever grants progress:
+	marking a quiz lesson Complete for someone who has already passed its quiz.
+	That direction cannot take a completion away from anyone, which is what makes
+	it safe to run unattended from a patch - see
+	`one_lms.patches.v15_0.promote_passed_quiz_lessons`. The downgrade half stays
+	a human decision.
 	"""
 	summary = {
 		"dry_run": bool(dry_run),
+		"promote_only": bool(promote_only),
 		"enrollments_affected": 0,
 		"lessons_downgraded": 0,
 		"lessons_promoted": 0,
@@ -162,14 +175,18 @@ def run(dry_run: bool = True, course: str = None, batch_size: int = BATCH_SIZE) 
 
 	pending = 0
 	for action in plan(course):
+		if promote_only and not action["promote"]:
+			continue
+
 		summary["enrollments_affected"] += 1
-		summary["lessons_downgraded"] += len(action["downgrade"])
+		if not promote_only:
+			summary["lessons_downgraded"] += len(action["downgrade"])
 		summary["lessons_promoted"] += len(action["promote"])
 
 		if dry_run:
 			continue
 
-		_apply(action)
+		_apply(action, promote_only=promote_only)
 		pending += 1
 		if pending >= batch_size:
 			# Commit per batch so one long transaction cannot lock the progress
