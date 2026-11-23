@@ -179,15 +179,28 @@ def is_pre_gate_enrollment(course: str, member: str) -> bool:
 	Read from the enrollment's own `creation`, so nothing has to be stamped on
 	existing rows and the answer cannot drift. A member with no enrollment is
 	not pre-gate - they have no standing on the course at all.
+
+	The **newest** enrollment decides. Duplicates for one member and course do
+	occur here - 76 pairs on production at the time of writing - and a bare
+	`db.get_value` on a filter dict would return an arbitrary one of them, so the
+	same learner could be gated or exempted from one request to the next. Newest
+	is also the right answer: someone who re-enrolled after the rule began is on
+	a fresh attempt and completes every lesson like anyone else.
 	"""
 	if not course or not member:
 		return False
 
-	enrolled_on = frappe.db.get_value(
-		"LMS Enrollment", {"course": course, "member": member}, "creation"
+	enrolled_on = frappe.get_all(
+		"LMS Enrollment",
+		filters={"course": course, "member": member},
+		pluck="creation",
+		order_by="creation desc",
+		limit=1,
 	)
 	if not enrolled_on:
 		return False
+
+	enrolled_on = enrolled_on[0]
 
 	return getdate(enrolled_on) < getdate(GATE_EFFECTIVE_FROM)
 
