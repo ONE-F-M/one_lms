@@ -134,7 +134,13 @@ def build_portal() -> bool:
 	if not run_command(["yarn", "build"], cwd=frontend):
 		return _build_failed("yarn build")
 
-	print("🎉 Portal rebuilt. Verify with: grep -c lockStatus on the served index-*.js")
+	# Verify on a string literal, never an identifier: vite minifies local names,
+	# so grepping for `lockStatus` reports 0 on a perfectly good build and reads
+	# as a failed deploy. The whitelisted method path survives untouched.
+	print(
+		"🎉 Portal rebuilt. Verify the served index-*.js contains "
+		"one_lms.quiz_gate.get_quiz_lock_status"
+	)
 	return True
 
 
