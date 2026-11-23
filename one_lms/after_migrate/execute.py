@@ -92,6 +92,26 @@ def build_is_stale() -> bool:
 	)
 
 
+def _build_failed(step: str) -> bool:
+	"""Record a failed build where someone will actually see it.
+
+	A migrate must not die because a portal build failed, but it must not pass
+	in silence either: an unbuilt portal looks exactly like a working one until
+	a learner hits the missing behaviour.
+	"""
+	frappe.log_error(
+		title="LMS portal build failed",
+		message=(
+			f"`{step}` failed in {get_frontend_dir()}.\n\n"
+			"The portal is still serving the previous bundle, so any Vue override "
+			"shipped with this migrate is NOT live. Rebuild manually:\n"
+			"    bench execute one_lms.frontend_sync.sync\n"
+			"    cd apps/lms/frontend && yarn install && yarn build\n"
+		),
+	)
+	return False
+
+
 def build_portal() -> bool:
 	"""Run the portal's vite build.
 
@@ -104,11 +124,15 @@ def build_portal() -> bool:
 		return False
 
 	print("🏗️ Rebuilding the LMS portal (vite)...")
-	if not run_command(["yarn", "install", "--frozen-lockfile"], cwd=frontend):
-		return False
+	# Plain `yarn install`, not --frozen-lockfile: a lockfile that has drifted
+	# from package.json would abort the install, and because a failed build only
+	# warns, the portal would quietly go unbuilt again - the very failure this
+	# module exists to end.
+	if not run_command(["yarn", "install"], cwd=frontend):
+		return _build_failed("yarn install")
 
 	if not run_command(["yarn", "build"], cwd=frontend):
-		return False
+		return _build_failed("yarn build")
 
 	print("🎉 Portal rebuilt. Verify with: grep -c lockStatus on the served index-*.js")
 	return True
