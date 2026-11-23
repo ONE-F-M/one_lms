@@ -15,17 +15,20 @@ the ungated code left them, in one of two states:
 
 This module reads those two cases and, when asked to, corrects them.
 
-Deliberately **not** registered in `patches.txt`. A patch runs unattended on
-every `bench migrate`, and this one moves certificate eligibility for real
-people in both directions - that decision belongs to a human who has read the
-dry run first. Run it explicitly instead:
+Only the **promote** half runs unattended, through
+`one_lms.patches.v15_0.promote_passed_quiz_lessons`. Granting someone the lesson
+they already earned by passing the quiz cannot cost anyone anything, so it is
+safe in a patch.
+
+The **downgrade** half is never registered: it takes 100% and certificate
+eligibility away from real people, and that decision belongs to a human who has
+read the dry run first. Run the full correction explicitly:
 
     bench execute one_lms.quiz_gate_backfill.run                        # dry run
     bench execute one_lms.quiz_gate_backfill.run --kwargs "{'dry_run': False}"
 """
 
 import frappe
-from frappe.database.database import savepoint
 from frappe.utils import cint
 
 from one_lms.quiz_gate import (
@@ -154,13 +157,18 @@ def _apply_safely(action: dict, promote_only: bool = False) -> bool:
 	in the transaction would be committed by the next batch, so the failed one is
 	rolled back to the point before it started and the run carries on.
 	"""
-	applied = False
+	# The savepoint is handled here rather than through frappe's context manager
+	# on purpose: that helper swallows the exception, and `frappe.get_traceback`
+	# reads `sys.exc_info()`, so logging it afterwards records an empty string.
+	# The log entry is the only trace a skipped enrollment leaves - it has to
+	# carry the traceback.
+	save_point = f"quiz_gate_backfill_{frappe.generate_hash(length=10)}"
+	frappe.db.savepoint(save_point)
 
-	with savepoint(catch=Exception):
+	try:
 		_apply(action, promote_only=promote_only)
-		applied = True
-
-	if not applied:
+	except Exception:
+		frappe.db.rollback(save_point=save_point)
 		frappe.log_error(
 			title="Quiz gate backfill skipped an enrollment",
 			message=(
@@ -168,8 +176,10 @@ def _apply_safely(action: dict, promote_only: bool = False) -> bool:
 				f"course={action['course']}\n\n{frappe.get_traceback()}"
 			),
 		)
+		return False
 
-	return applied
+	frappe.db.release_savepoint(save_point)
+	return True
 
 
 def run(
