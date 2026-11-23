@@ -25,6 +25,7 @@ dry run first. Run it explicitly instead:
 """
 
 import frappe
+from frappe.database.database import savepoint
 from frappe.utils import cint
 
 from one_lms.quiz_gate import (
@@ -146,17 +147,49 @@ def _apply(action: dict, promote_only: bool = False):
 	refresh_enrollment_progress(action["enrollment"], action["course"], action["member"])
 
 
+def _apply_safely(action: dict, promote_only: bool = False) -> bool:
+	"""Apply one enrollment inside a savepoint. Returns False if it was skipped.
+
+	The savepoint matters as much as the except: a half-written enrollment left
+	in the transaction would be committed by the next batch, so the failed one is
+	rolled back to the point before it started and the run carries on.
+	"""
+	applied = False
+
+	with savepoint(catch=Exception):
+		_apply(action, promote_only=promote_only)
+		applied = True
+
+	if not applied:
+		frappe.log_error(
+			title="Quiz gate backfill skipped an enrollment",
+			message=(
+				f"enrollment={action['enrollment']} member={action['member']} "
+				f"course={action['course']}\n\n{frappe.get_traceback()}"
+			),
+		)
+
+	return applied
+
+
 def run(
 	dry_run: bool = True,
 	course: str = None,
 	batch_size: int = BATCH_SIZE,
 	promote_only: bool = False,
+	continue_on_error: bool = False,
 ) -> dict:
 	"""Correct every affected enrollment. Dry run by default.
 
 	Idempotent: a second run finds nothing to do, because `plan` reads the state
 	the first run left behind. Safe to re-run after fixing data problems that
 	`one_lms.quiz_gate_audit.data_hygiene_report` turned up.
+
+	`continue_on_error` isolates each enrollment in a savepoint and skips the ones
+	that fail, logging each. Used by the patch: one member with unusable data -
+	a deleted lesson, an on_change that throws - must not abort a `bench migrate`
+	for the whole site. Left off for manual runs, where a surprise should stop
+	the operator rather than scroll past.
 
 	`promote_only` restricts the run to the half that only ever grants progress:
 	marking a quiz lesson Complete for someone who has already passed its quiz.
@@ -169,6 +202,7 @@ def run(
 		"dry_run": bool(dry_run),
 		"promote_only": bool(promote_only),
 		"enrollments_affected": 0,
+		"enrollments_failed": 0,
 		"lessons_downgraded": 0,
 		"lessons_promoted": 0,
 	}
@@ -186,7 +220,14 @@ def run(
 		if dry_run:
 			continue
 
-		_apply(action, promote_only=promote_only)
+		if continue_on_error:
+			applied = _apply_safely(action, promote_only=promote_only)
+			if not applied:
+				summary["enrollments_failed"] += 1
+				continue
+		else:
+			_apply(action, promote_only=promote_only)
+
 		pending += 1
 		if pending >= batch_size:
 			# Commit per batch so one long transaction cannot lock the progress
