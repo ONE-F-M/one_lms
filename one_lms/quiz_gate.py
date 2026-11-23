@@ -200,10 +200,6 @@ def can_bypass_gate(course: str, member: str) -> bool:
 	if member != frappe.session.user:
 		return True
 
-	# Enrolled before the rule existed - see GATE_EFFECTIVE_FROM.
-	if is_pre_gate_enrollment(course, member):
-		return True
-
 	if any(role in frappe.get_roles(member) for role in GATE_BYPASS_ROLES):
 		return True
 
@@ -336,6 +332,16 @@ def evaluate_quiz_gate(quiz: str, member: str = None, course: str = None) -> fra
 		return state
 
 	if can_bypass_gate(state.course, member):
+		return state
+
+	# Enrolled before the rule existed - see GATE_EFFECTIVE_FROM. Deliberately
+	# checked here and not in `can_bypass_gate`: that helper also guards
+	# `hold_quiz_lesson_until_passed`, and exempting these members there would
+	# mark their quiz lesson Complete the moment they opened it, handing them
+	# 100% course progress and certificate eligibility without ever sitting the
+	# quiz - the exact hole the gate was written to close. They are excused from
+	# the prerequisite order, never from passing the quiz.
+	if is_pre_gate_enrollment(state.course, member):
 		return state
 
 	preceding = get_lessons_before(state.course, lesson)

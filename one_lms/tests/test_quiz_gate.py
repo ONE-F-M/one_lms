@@ -229,6 +229,21 @@ class TestQuizGate(FrappeTestCase):
         self.assertEqual(submission.percentage, 100)
         self.assertFalse(get_quiz_lock_status(self.quiz)["locked"])
 
+    def test_pre_gate_enrollment_still_has_to_pass_the_quiz(self):
+        """The exemption excuses the lesson order, never the quiz itself.
+
+        Guards a hole that is easy to reintroduce: putting the pre-gate check in
+        `can_bypass_gate` also exempts `hold_quiz_lesson_until_passed`, which
+        would mark the quiz lesson Complete on open and hand these members 100%
+        and a certificate without ever sitting the quiz.
+        """
+        self._backdate_enrollment(add_days(GATE_EFFECTIVE_FROM, -1))
+
+        save_progress(self.quiz_lesson, self.course)
+
+        self.assertEqual(self._lesson_status(self.quiz_lesson), "Incomplete")
+        self.assertLess(get_course_progress(self.course, self.member), 100)
+
     def test_enrollment_from_the_day_the_gate_began_is_blocked(self):
         """The cutoff is exclusive: enrolled on the day itself, the rule applies."""
         self._backdate_enrollment(GATE_EFFECTIVE_FROM)
