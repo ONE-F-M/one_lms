@@ -29,11 +29,29 @@ from one_lms.quiz_gate_backfill import run
 
 
 def execute():
-	summary = run(dry_run=False, promote_only=True)
+	"""Never abort the migrate.
 
-	if summary["lessons_promoted"]:
-		frappe.logger().info(
-			"promote_passed_quiz_lessons: promoted {0} quiz lesson(s) across {1} enrollment(s)".format(
-				summary["lessons_promoted"], summary["enrollments_affected"]
-			)
+	This corrects historical data; it is not a schema change anything else
+	depends on. A site with one unusable enrollment - a deleted lesson, an
+	on_change that throws - must still finish migrating, so each enrollment is
+	isolated in a savepoint and anything that still escapes is logged rather than
+	raised. Re-runnable by hand afterwards:
+
+	    bench execute one_lms.quiz_gate_backfill.run --kwargs "{'dry_run': False, 'promote_only': True}"
+	"""
+	try:
+		summary = run(dry_run=False, promote_only=True, continue_on_error=True)
+	except Exception:
+		frappe.log_error(
+			title="promote_passed_quiz_lessons patch failed",
+			message=frappe.get_traceback(),
 		)
+		return
+
+	frappe.logger().info(
+		"promote_passed_quiz_lessons: promoted {0} quiz lesson(s) across {1} enrollment(s), {2} skipped".format(
+			summary["lessons_promoted"],
+			summary["enrollments_affected"],
+			summary["enrollments_failed"],
+		)
+	)

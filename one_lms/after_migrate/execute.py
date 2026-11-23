@@ -139,16 +139,30 @@ def build_portal() -> bool:
 
 
 def after_migrate():
-	"""Sync the overrides into the vendored portal, and rebuild if needed."""
+	"""Sync the overrides into the vendored portal, and rebuild if needed.
+
+	Nothing in here may fail a migrate. The schema work is already done by the
+	time this runs, and a bench that cannot build the portal - no node, no write
+	access to apps/lms, no frontend at all - still has a perfectly good site. Any
+	failure is logged and the migrate is allowed to finish; the portal simply
+	keeps serving the bundle it already had.
+	"""
 	try:
 		result = sync()
+
+		if not result["copied"] and not build_is_stale():
+			print("✅ LMS portal already up to date; no rebuild needed.")
+			return
+
+		build_portal()
 	except Exception:
-		frappe.log_error("LMS portal override sync failed", frappe.get_traceback())
-		print("🔥 Could not sync portal overrides; leaving the build alone.")
-		return
-
-	if not result["copied"] and not build_is_stale():
-		print("✅ LMS portal already up to date; no rebuild needed.")
-		return
-
-	build_portal()
+		frappe.log_error(
+			title="LMS portal rebuild skipped after migrate",
+			message=(
+				"The migrate finished; only the portal rebuild failed, so the "
+				"previous bundle is still being served and any Vue override "
+				"shipped with this migrate is NOT live.\n\n"
+				f"{frappe.get_traceback()}"
+			),
+		)
+		print("🔥 Portal rebuild skipped; see the Error Log. The migrate itself is fine.")
