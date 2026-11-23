@@ -237,9 +237,13 @@ class TestQuizGate(FrappeTestCase):
         """
         self._backdate_enrollment(add_days(GATE_EFFECTIVE_FROM, -1))
 
+        # Upstream refuses a second enrollment for the same member and course, so
+        # the duplicate is written the way the 76 pairs on production came to
+        # exist: around that validation, not through it.
         second = frappe.get_doc(
             {"doctype": "LMS Enrollment", "member": self.member, "course": self.course}
         )
+        second.flags.ignore_validate = True
         second.insert(ignore_permissions=True)
         frappe.db.set_value(
             "LMS Enrollment",
