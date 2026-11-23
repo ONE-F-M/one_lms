@@ -229,6 +229,28 @@ class TestQuizGate(FrappeTestCase):
         self.assertEqual(submission.percentage, 100)
         self.assertFalse(get_quiz_lock_status(self.quiz)["locked"])
 
+    def test_re_enrolling_after_the_cutoff_ends_the_exemption(self):
+        """A duplicate enrollment is decided by the newest row, not an arbitrary one.
+
+        Someone who re-enrolled after the rule began is on a fresh attempt, so
+        the older pre-gate row must not keep excusing them.
+        """
+        self._backdate_enrollment(add_days(GATE_EFFECTIVE_FROM, -1))
+
+        second = frappe.get_doc(
+            {"doctype": "LMS Enrollment", "member": self.member, "course": self.course}
+        )
+        second.insert(ignore_permissions=True)
+        frappe.db.set_value(
+            "LMS Enrollment",
+            second.name,
+            "creation",
+            add_days(GATE_EFFECTIVE_FROM, 1),
+            update_modified=False,
+        )
+
+        self.assertTrue(get_quiz_lock_status(self.quiz)["locked"])
+
     def test_pre_gate_enrollment_still_has_to_pass_the_quiz(self):
         """The exemption excuses the lesson order, never the quiz itself.
 
