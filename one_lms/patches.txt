@@ -9,3 +9,4 @@ one_lms.patches.v15_0.fix_certificate_print_format_asset_paths
 one_lms.patches.v15_0.fix_certificate_print_format_landscape  # 10-08-2026 widen preview page
 one_lms.patches.v15_0.fix_quiz_submission_email_template  # 02-09-2026 per-row course name
 one_lms.patches.v15_0.promote_passed_quiz_lessons  # 03-11-2026 credit quiz lessons already passed
+one_lms.patches.v15_0.credit_quiz_passes_after_pass_mark_change  # 24-11-2026 credit passes after the pass mark dropped to 80
