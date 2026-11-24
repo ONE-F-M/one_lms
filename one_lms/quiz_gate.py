@@ -75,42 +75,66 @@ def get_quiz_of_lesson(lesson: str) -> str | None:
 	return None
 
 
-def get_lesson_of_quiz(quiz: str, member: str = None) -> str | None:
-	"""Return the lesson that hosts this quiz.
+def get_lessons_of_quiz(quiz: str) -> list[str]:
+	"""Every lesson that hosts this quiz.
 
 	`LMS Quiz.lesson` is authoritative when set, but most of our quizzes leave it
 	empty, so fall back to a reverse lookup on the lesson link fields.
 
-	One quiz can be attached to lessons in more than one course - the same
-	assessment reused by a general and a supervisor edition of a course. A bare
-	`db.get_value` on a filter dict returns an arbitrary one of them, so the gate
-	could measure a learner against a course they are not taking and let them
-	straight into the quiz because they finished the other edition. When `member`
-	is known, the lesson whose course they are enrolled in decides.
+	Usually one lesson, but a quiz can be attached in more than one course - the
+	same assessment reused by the general and the supervisor edition of a
+	training. Returning the list keeps that visible to the caller instead of
+	silently picking one, which is what `db.get_value` on a filter dict did.
 	"""
 	if not quiz:
-		return None
+		return []
 
 	lesson = frappe.db.get_value("LMS Quiz", quiz, "lesson")
 	if lesson and frappe.db.exists("Course Lesson", lesson):
-		return lesson
+		return [lesson]
 
-	candidates = []
+	lessons = []
 	for fieldname in ("quiz_id", "quiz"):
 		for row in frappe.get_all("Course Lesson", filters={fieldname: quiz}, pluck="name"):
-			if row not in candidates:
-				candidates.append(row)
+			if row not in lessons:
+				lessons.append(row)
 
-	if not candidates:
+	return lessons
+
+
+def is_enrolled(course: str, member: str) -> bool:
+	if not course or not member:
+		return False
+
+	return bool(frappe.db.exists("LMS Enrollment", {"course": course, "member": member}))
+
+
+def get_lesson_of_quiz(quiz: str, member: str = None, course: str = None) -> str | None:
+	"""The single lesson that hosts this quiz for this member.
+
+	Where a quiz is shared between courses, an explicit `course` decides, then
+	the course the member is enrolled in. Only used where one answer is required
+	- `evaluate_quiz_gate` weighs every host instead, so a learner cannot clear
+	one edition of a course and walk into the other edition's quiz.
+	"""
+	lessons = get_lessons_of_quiz(quiz)
+	if not lessons:
 		return None
 
-	if len(candidates) > 1 and member:
-		for candidate in candidates:
-			course = get_course_of_lesson(candidate)
-			if course and frappe.db.exists("LMS Enrollment", {"course": course, "member": member}):
-				return candidate
+	if len(lessons) == 1:
+		return lessons[0]
 
-	return candidates[0]
+	if course:
+		for lesson in lessons:
+			if get_course_of_lesson(lesson) == course:
+				return lesson
+
+	if member:
+		for lesson in lessons:
+			if is_enrolled(get_course_of_lesson(lesson), member):
+				return lesson
+
+	return lessons[0]
 
 
 def get_course_of_lesson(lesson: str) -> str | None:
@@ -231,33 +255,36 @@ def mark_quiz_lesson_complete(quiz: str, member: str):
 	if not quiz or not member or not has_passed_quiz(quiz, member):
 		return
 
-	lesson = get_lesson_of_quiz(quiz, member)
-	course = get_course_of_lesson(lesson)
-	if not lesson or not course:
-		return
+	# Every course that hosts this quiz and that the member is taking: passing
+	# one shared assessment earns the lesson in each of them, otherwise the
+	# second course can never reach 100% however much content is finished.
+	for lesson in get_lessons_of_quiz(quiz):
+		course = get_course_of_lesson(lesson)
+		if not course:
+			continue
 
-	enrollment = frappe.db.exists("LMS Enrollment", {"course": course, "member": member})
-	if not enrollment:
-		return
+		enrollment = frappe.db.exists("LMS Enrollment", {"course": course, "member": member})
+		if not enrollment:
+			continue
 
-	existing = frappe.db.exists("LMS Course Progress", {"lesson": lesson, "member": member})
-	if existing:
-		progress_row = frappe.get_doc("LMS Course Progress", existing)
-		if progress_row.status == "Complete":
-			return
-		progress_row.status = "Complete"
-		progress_row.save(ignore_permissions=True)
-	else:
-		frappe.get_doc(
-			{
-				"doctype": "LMS Course Progress",
-				"lesson": lesson,
-				"status": "Complete",
-				"member": member,
-			}
-		).save(ignore_permissions=True)
+		existing = frappe.db.exists("LMS Course Progress", {"lesson": lesson, "member": member})
+		if existing:
+			progress_row = frappe.get_doc("LMS Course Progress", existing)
+			if progress_row.status == "Complete":
+				continue
+			progress_row.status = "Complete"
+			progress_row.save(ignore_permissions=True)
+		else:
+			frappe.get_doc(
+				{
+					"doctype": "LMS Course Progress",
+					"lesson": lesson,
+					"status": "Complete",
+					"member": member,
+				}
+			).save(ignore_permissions=True)
 
-	refresh_enrollment_progress(enrollment, course, member)
+		refresh_enrollment_progress(enrollment, course, member)
 
 
 def refresh_enrollment_progress(enrollment: str, course: str, member: str):
@@ -294,12 +321,48 @@ def evaluate_quiz_gate(quiz: str, member: str = None, course: str = None) -> fra
 	"""
 	member = member or frappe.session.user
 
-	state = frappe._dict(
+	lessons = get_lessons_of_quiz(quiz)
+	if not lessons:
+		# A standalone quiz that is not part of any course outline - nothing to gate.
+		return _unlocked_state(quiz)
+
+	# A quiz shared between courses is weighed against each course that hosts it
+	# and that this learner is taking, and it stays locked while any of them
+	# still has content outstanding. Picking one host instead let a member
+	# enrolled in both the general and the supervisor edition clear the lighter
+	# one and walk straight into the other edition's assessment - 7 members are
+	# enrolled in both editions of the OSH training on production today.
+	scoped_to = None
+	if course:
+		scoped = [lesson for lesson in lessons if get_course_of_lesson(lesson) == course]
+		# A caller-supplied course that hosts none of these lessons says nothing
+		# about them, so it is dropped rather than measured against an outline
+		# the lesson is not in - which would find no earlier lessons and unlock.
+		if scoped:
+			lessons, scoped_to = scoped, course
+	elif len(lessons) > 1:
+		enrolled = [
+			lesson for lesson in lessons if is_enrolled(get_course_of_lesson(lesson), member)
+		]
+		lessons = enrolled or lessons
+
+	unlocked = None
+	for lesson in lessons:
+		state = _evaluate_one_host(quiz, member, lesson, scoped_to)
+		if state.locked:
+			return state
+		unlocked = unlocked or state
+
+	return unlocked
+
+
+def _unlocked_state(quiz: str, lesson: str = None, course: str = None) -> frappe._dict:
+	return frappe._dict(
 		{
 			"quiz": quiz,
 			"locked": False,
-			"lesson": None,
-			"course": None,
+			"lesson": lesson,
+			"course": course,
 			"pending_count": 0,
 			"total_count": 0,
 			"next_lesson": None,
@@ -307,20 +370,18 @@ def evaluate_quiz_gate(quiz: str, member: str = None, course: str = None) -> fra
 		}
 	)
 
-	lesson = get_lesson_of_quiz(quiz, member)
-	if not lesson:
-		# A standalone quiz that is not part of any course outline - nothing to gate.
+
+def _evaluate_one_host(quiz: str, member: str, lesson: str, course: str = None) -> frappe._dict:
+	"""Weigh the gate for one lesson that hosts the quiz."""
+	host_course = course or get_course_of_lesson(lesson)
+	state = _unlocked_state(quiz, lesson, host_course)
+	if not host_course:
 		return state
 
-	state.lesson = lesson
-	state.course = course or get_course_of_lesson(lesson)
-	if not state.course:
+	if can_bypass_gate(host_course, member):
 		return state
 
-	if can_bypass_gate(state.course, member):
-		return state
-
-	preceding = get_lessons_before(state.course, lesson)
+	preceding = get_lessons_before(host_course, lesson)
 	incomplete = get_incomplete_lessons(preceding, member)
 
 	state.total_count = len(preceding)
