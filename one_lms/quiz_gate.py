@@ -354,14 +354,24 @@ def evaluate_quiz_gate(quiz: str, member: str = None, course: str = None) -> fra
 		]
 		lessons = enrolled or lessons
 
-	unlocked = None
+	# Within one course the most lenient host decides: the same quiz can sit at
+	# two points of one outline, and a learner who reached the earlier point has
+	# finished the lessons that point asks for. Across courses the strictest
+	# decides, which is the shared-edition case above.
+	by_course = {}
 	for lesson in lessons:
 		state = _evaluate_one_host(quiz, member, lesson, scoped_to)
+		best = by_course.get(state.course)
+		if best is None or (
+			best.locked and (not state.locked or state.pending_count < best.pending_count)
+		):
+			by_course[state.course] = state
+
+	for state in by_course.values():
 		if state.locked:
 			return state
-		unlocked = unlocked or state
 
-	return unlocked
+	return next(iter(by_course.values()))
 
 
 def _unlocked_state(quiz: str, lesson: str = None, course: str = None) -> frappe._dict:
