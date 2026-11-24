@@ -309,6 +309,21 @@ class TestQuizGate(FrappeTestCase):
         self.assertEqual(self._lesson_status(self.quiz_lesson), "Complete")
         self.assertEqual(self._lesson_status(other["quiz_lesson"]), "Complete")
 
+    def test_a_quiz_reused_twice_in_one_course_opens_at_the_earlier_point(self):
+        """The same quiz at two points of one outline asks for the earlier one.
+
+        A learner who has reached the first occurrence has finished the lessons
+        that occurrence asks for, so the later position must not hold them back.
+        Only a *different* course that hosts the quiz does that.
+        """
+        later_chapter = self._create_chapter("Second Assessment")
+        self._create_lesson(later_chapter, "Final Test Again", quiz=self.quiz)
+
+        self._complete_content_lessons()
+
+        self.assertFalse(get_quiz_lock_status(self.quiz)["locked"])
+        self.assertEqual(self._submit_quiz(MARKS_OUT_OF).percentage, 100)
+
     def _create_parallel_course_hosting_the_same_quiz(self):
         """A second course whose Assessment lesson carries the same quiz."""
         suffix = frappe.generate_hash(length=6)
