@@ -3,14 +3,13 @@
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
-from frappe.utils import add_days
 from lms.lms.doctype.course_lesson.course_lesson import save_progress
 from lms.lms.utils import get_course_progress
 
 from one_lms.overrides.lms_certificate import create_certificate
 from one_lms.quiz_gate import (
-    GATE_EFFECTIVE_FROM,
     QuizLockedError,
+    get_lesson_of_quiz,
     get_quiz_lock_status,
 )
 
@@ -211,72 +210,78 @@ class TestQuizGate(FrappeTestCase):
         )
 
     def _backdate_enrollment(self, creation):
-        """Move the enrollment's creation, as a pre-gate record would be."""
+        """Move the enrollment's creation, as a long-standing record would be."""
         frappe.db.set_value(
             "LMS Enrollment", self.enrollment, "creation", creation, update_modified=False
         )
 
-    def test_enrollment_from_before_the_gate_is_not_blocked(self):
-        """Learners enrolled under the old rules keep their unfinished lessons.
+    def test_an_old_enrollment_is_gated_like_any_other(self):
+        """The rule applies to every enrollment, however long it has stood.
 
-        They were never told a lesson was outstanding, so the rule is not applied
-        to them retroactively - see GATE_EFFECTIVE_FROM.
+        It was once relaxed for enrollments predating the gate, which left most
+        of the roll able to open a quiz without touching the course content -
+        the whole point of HD-1944953. Age no longer buys an exemption.
         """
-        self._backdate_enrollment(add_days(GATE_EFFECTIVE_FROM, -1))
-
-        submission = self._submit_quiz(MARKS_OUT_OF)
-
-        self.assertEqual(submission.percentage, 100)
-        self.assertFalse(get_quiz_lock_status(self.quiz)["locked"])
-
-    def test_re_enrolling_after_the_cutoff_ends_the_exemption(self):
-        """A duplicate enrollment is decided by the newest row, not an arbitrary one.
-
-        Someone who re-enrolled after the rule began is on a fresh attempt, so
-        the older pre-gate row must not keep excusing them.
-        """
-        self._backdate_enrollment(add_days(GATE_EFFECTIVE_FROM, -1))
-
-        # Upstream refuses a second enrollment for the same member and course, so
-        # the duplicate is written the way the 76 pairs on production came to
-        # exist: around that validation, not through it.
-        second = frappe.get_doc(
-            {"doctype": "LMS Enrollment", "member": self.member, "course": self.course}
-        )
-        second.flags.ignore_validate = True
-        second.insert(ignore_permissions=True)
-        frappe.db.set_value(
-            "LMS Enrollment",
-            second.name,
-            "creation",
-            add_days(GATE_EFFECTIVE_FROM, 1),
-            update_modified=False,
-        )
+        self._backdate_enrollment("2024-01-01")
 
         self.assertTrue(get_quiz_lock_status(self.quiz)["locked"])
+        with self.assertRaises(QuizLockedError):
+            self._submit_quiz(MARKS_OUT_OF)
 
-    def test_pre_gate_enrollment_still_has_to_pass_the_quiz(self):
-        """The exemption excuses the lesson order, never the quiz itself.
+    def test_an_old_enrollment_unlocks_by_completing_the_lessons(self):
+        """Nothing is taken away permanently: finish the content and sit the quiz."""
+        self._backdate_enrollment("2024-01-01")
+        self._complete_content_lessons()
 
-        Guards a hole that is easy to reintroduce: putting the pre-gate check in
-        `can_bypass_gate` also exempts `hold_quiz_lesson_until_passed`, which
-        would mark the quiz lesson Complete on open and hand these members 100%
-        and a certificate without ever sitting the quiz.
+        self.assertFalse(get_quiz_lock_status(self.quiz)["locked"])
+        self.assertEqual(self._submit_quiz(MARKS_OUT_OF).percentage, 100)
+
+    def test_quiz_lesson_is_held_until_the_quiz_is_passed(self):
+        """Opening the Assessment lesson never counts as completing it.
+
+        Guards a hole that is easy to reintroduce: moving this check into
+        `can_bypass_gate` would mark the quiz lesson Complete on open and hand
+        the member 100% and a certificate without ever sitting the quiz.
         """
-        self._backdate_enrollment(add_days(GATE_EFFECTIVE_FROM, -1))
-
         save_progress(self.quiz_lesson, self.course)
 
         self.assertEqual(self._lesson_status(self.quiz_lesson), "Incomplete")
         self.assertLess(get_course_progress(self.course, self.member), 100)
 
-    def test_enrollment_from_the_day_the_gate_began_is_blocked(self):
-        """The cutoff is exclusive: enrolled on the day itself, the rule applies."""
-        self._backdate_enrollment(GATE_EFFECTIVE_FROM)
+    def test_a_shared_quiz_resolves_to_the_course_the_member_is_taking(self):
+        """One quiz reused by two courses must be measured against the right one.
 
+        Production attaches a single quiz to the general and the supervisor
+        edition of the same course. Resolving it to an arbitrary lesson let a
+        member who had finished the other edition walk into the quiz.
+        """
+        other_course = self._create_course(frappe.generate_hash(length=6))
+        other_chapter = frappe.get_doc(
+            {"doctype": "Course Chapter", "title": "Assessment", "course": other_course}
+        )
+        other_chapter.insert(ignore_permissions=True)
+        course_doc = frappe.get_doc("LMS Course", other_course)
+        course_doc.append("chapters", {"chapter": other_chapter.name})
+        course_doc.save(ignore_permissions=True)
+
+        other_lesson = frappe.get_doc(
+            {
+                "doctype": "Course Lesson",
+                "title": "Final Test",
+                "chapter": other_chapter.name,
+                "course": other_course,
+                "body": "<p>Final Test</p>",
+                "description": "<p>Final Test</p>",
+                "quiz": self.quiz,
+                "quiz_id": self.quiz,
+            }
+        )
+        other_lesson.insert(ignore_permissions=True)
+
+        # The member is enrolled only in the course built by setUp, so that is
+        # the outline the gate has to measure them against.
+        self.assertEqual(get_lesson_of_quiz(self.quiz, self.member), self.quiz_lesson)
         self.assertTrue(get_quiz_lock_status(self.quiz)["locked"])
-        with self.assertRaises(QuizLockedError):
-            self._submit_quiz(MARKS_OUT_OF)
 
     def test_failed_attempt_leaves_the_course_incomplete(self):
         self._complete_content_lessons()

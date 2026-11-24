@@ -41,25 +41,13 @@ Related modules:
 
 import frappe
 from frappe import _
-from frappe.utils import cint, getdate, today
+from frappe.utils import cint, today
 from lms.lms.utils import get_course_progress, is_instructor
 
 from one_lms.overrides.lms_enrollment import update_program_progress
 
 # Staff who must be able to sit a quiz out of order to review or demo a course.
 GATE_BYPASS_ROLES = ("Administrator", "System Manager", "Moderator", "Course Creator")
-
-# The date the prerequisite rule went live. Enrollments older than this are not
-# held to it.
-#
-# The rule was introduced to learners who had already worked through a course
-# under the old behaviour, where skipping a lesson was never challenged and the
-# course page rounded their progress up to "100% completed". Applying it
-# retroactively left them unable to submit a quiz they had every reason to think
-# they had earned, with no way to find out why - the tickets this module was
-# written to prevent. They are let through; anyone enrolled on or after this
-# date completes every lesson as normal.
-GATE_EFFECTIVE_FROM = "2026-10-12"
 
 
 class QuizLockedError(frappe.ValidationError):
@@ -87,11 +75,18 @@ def get_quiz_of_lesson(lesson: str) -> str | None:
 	return None
 
 
-def get_lesson_of_quiz(quiz: str) -> str | None:
+def get_lesson_of_quiz(quiz: str, member: str = None) -> str | None:
 	"""Return the lesson that hosts this quiz.
 
 	`LMS Quiz.lesson` is authoritative when set, but most of our quizzes leave it
 	empty, so fall back to a reverse lookup on the lesson link fields.
+
+	One quiz can be attached to lessons in more than one course - the same
+	assessment reused by a general and a supervisor edition of a course. A bare
+	`db.get_value` on a filter dict returns an arbitrary one of them, so the gate
+	could measure a learner against a course they are not taking and let them
+	straight into the quiz because they finished the other edition. When `member`
+	is known, the lesson whose course they are enrolled in decides.
 	"""
 	if not quiz:
 		return None
@@ -100,12 +95,22 @@ def get_lesson_of_quiz(quiz: str) -> str | None:
 	if lesson and frappe.db.exists("Course Lesson", lesson):
 		return lesson
 
+	candidates = []
 	for fieldname in ("quiz_id", "quiz"):
-		lesson = frappe.db.get_value("Course Lesson", {fieldname: quiz}, "name")
-		if lesson:
-			return lesson
+		for row in frappe.get_all("Course Lesson", filters={fieldname: quiz}, pluck="name"):
+			if row not in candidates:
+				candidates.append(row)
 
-	return None
+	if not candidates:
+		return None
+
+	if len(candidates) > 1 and member:
+		for candidate in candidates:
+			course = get_course_of_lesson(candidate)
+			if course and frappe.db.exists("LMS Enrollment", {"course": course, "member": member}):
+				return candidate
+
+	return candidates[0]
 
 
 def get_course_of_lesson(lesson: str) -> str | None:
@@ -173,38 +178,6 @@ def get_incomplete_lessons(lessons: list[str], member: str) -> list[str]:
 	return [lesson for lesson in lessons if lesson not in completed]
 
 
-def is_pre_gate_enrollment(course: str, member: str) -> bool:
-	"""Was this member enrolled before the prerequisite rule existed?
-
-	Read from the enrollment's own `creation`, so nothing has to be stamped on
-	existing rows and the answer cannot drift. A member with no enrollment is
-	not pre-gate - they have no standing on the course at all.
-
-	The **newest** enrollment decides. Duplicates for one member and course do
-	occur here - 76 pairs on production at the time of writing - and a bare
-	`db.get_value` on a filter dict would return an arbitrary one of them, so the
-	same learner could be gated or exempted from one request to the next. Newest
-	is also the right answer: someone who re-enrolled after the rule began is on
-	a fresh attempt and completes every lesson like anyone else.
-	"""
-	if not course or not member:
-		return False
-
-	enrolled_on = frappe.get_all(
-		"LMS Enrollment",
-		filters={"course": course, "member": member},
-		pluck="creation",
-		order_by="creation desc",
-		limit=1,
-	)
-	if not enrolled_on:
-		return False
-
-	enrolled_on = enrolled_on[0]
-
-	return getdate(enrolled_on) < getdate(GATE_EFFECTIVE_FROM)
-
-
 def can_bypass_gate(course: str, member: str) -> bool:
 	if frappe.flags.in_migrate or frappe.flags.in_patch or frappe.flags.in_install:
 		return True
@@ -258,7 +231,7 @@ def mark_quiz_lesson_complete(quiz: str, member: str):
 	if not quiz or not member or not has_passed_quiz(quiz, member):
 		return
 
-	lesson = get_lesson_of_quiz(quiz)
+	lesson = get_lesson_of_quiz(quiz, member)
 	course = get_course_of_lesson(lesson)
 	if not lesson or not course:
 		return
@@ -334,7 +307,7 @@ def evaluate_quiz_gate(quiz: str, member: str = None, course: str = None) -> fra
 		}
 	)
 
-	lesson = get_lesson_of_quiz(quiz)
+	lesson = get_lesson_of_quiz(quiz, member)
 	if not lesson:
 		# A standalone quiz that is not part of any course outline - nothing to gate.
 		return state
@@ -345,16 +318,6 @@ def evaluate_quiz_gate(quiz: str, member: str = None, course: str = None) -> fra
 		return state
 
 	if can_bypass_gate(state.course, member):
-		return state
-
-	# Enrolled before the rule existed - see GATE_EFFECTIVE_FROM. Deliberately
-	# checked here and not in `can_bypass_gate`: that helper also guards
-	# `hold_quiz_lesson_until_passed`, and exempting these members there would
-	# mark their quiz lesson Complete the moment they opened it, handing them
-	# 100% course progress and certificate eligibility without ever sitting the
-	# quiz - the exact hole the gate was written to close. They are excused from
-	# the prerequisite order, never from passing the quiz.
-	if is_pre_gate_enrollment(state.course, member):
 		return state
 
 	preceding = get_lessons_before(state.course, lesson)
