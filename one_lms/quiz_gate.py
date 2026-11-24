@@ -316,8 +316,16 @@ def evaluate_quiz_gate(quiz: str, member: str = None, course: str = None) -> fra
 	"""Single source of truth for whether `member` may sit `quiz` right now.
 
 	Both the enforcement path (`validate_quiz_prerequisites`) and the portal
-	(`get_quiz_lock_status`) read this, so the lock a learner is shown can never
-	disagree with the lock the server applies.
+	(`get_quiz_lock_status`) read this, so the lock a learner is shown and the
+	lock the server applies are decided by the same code.
+
+	They can still reach different answers for the one case of a quiz shared
+	between courses: the submission carries the course the learner is sitting it
+	from and is weighed against that course alone, while the portal passes no
+	course and is weighed against every edition they are enrolled in. The
+	portal is the stricter of the two, so a learner is never shown an open quiz
+	that the server then refuses. Passing the lesson's course from the portal
+	would align them exactly, at the cost of a frontend rebuild.
 	"""
 	member = member or frappe.session.user
 
