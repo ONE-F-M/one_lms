@@ -283,6 +283,78 @@ class TestQuizGate(FrappeTestCase):
         self.assertEqual(get_lesson_of_quiz(self.quiz, self.member), self.quiz_lesson)
         self.assertTrue(get_quiz_lock_status(self.quiz)["locked"])
 
+    def test_a_shared_quiz_stays_locked_while_either_course_is_outstanding(self):
+        """Enrolled in both editions, clearing the lighter one is not enough.
+
+        Seven members are enrolled in both the general and the supervisor
+        edition of the OSH training on production, so "the course the member is
+        enrolled in" does not single one out. Every course that hosts the quiz
+        and that they are taking has to be clear.
+        """
+        other = self._create_parallel_course_hosting_the_same_quiz()
+
+        # Finish the other edition outright, leaving this one untouched.
+        for lesson in other["content_lessons"]:
+            save_progress(lesson, other["course"])
+
+        self.assertTrue(get_quiz_lock_status(self.quiz)["locked"])
+        with self.assertRaises(QuizLockedError):
+            self._submit_quiz(MARKS_OUT_OF)
+
+        # Clear this edition too and the quiz opens, crediting both courses.
+        self._complete_content_lessons()
+
+        self.assertFalse(get_quiz_lock_status(self.quiz)["locked"])
+        self._submit_quiz(MARKS_OUT_OF)
+        self.assertEqual(self._lesson_status(self.quiz_lesson), "Complete")
+        self.assertEqual(self._lesson_status(other["quiz_lesson"]), "Complete")
+
+    def _create_parallel_course_hosting_the_same_quiz(self):
+        """A second course whose Assessment lesson carries the same quiz."""
+        suffix = frappe.generate_hash(length=6)
+        course = self._create_course(suffix)
+
+        def chapter(title):
+            doc = frappe.get_doc(
+                {"doctype": "Course Chapter", "title": title, "course": course}
+            )
+            doc.insert(ignore_permissions=True)
+            parent = frappe.get_doc("LMS Course", course)
+            parent.append("chapters", {"chapter": doc.name})
+            parent.save(ignore_permissions=True)
+            return doc.name
+
+        def lesson(chapter_name, title, quiz=None):
+            doc = frappe.get_doc(
+                {
+                    "doctype": "Course Lesson",
+                    "title": title,
+                    "chapter": chapter_name,
+                    "course": course,
+                    "body": f"<p>{title}</p>",
+                    "description": f"<p>{title}</p>",
+                    "quiz": quiz,
+                    "quiz_id": quiz,
+                }
+            )
+            doc.insert(ignore_permissions=True)
+            return doc.name
+
+        content = chapter("Content")
+        content_lessons = [lesson(content, "Other Module One")]
+        quiz_lesson = lesson(chapter("Assessment"), "Final Test", quiz=self.quiz)
+
+        enrollment = frappe.get_doc(
+            {"doctype": "LMS Enrollment", "member": self.member, "course": course}
+        )
+        enrollment.insert(ignore_permissions=True)
+
+        return {
+            "course": course,
+            "content_lessons": content_lessons,
+            "quiz_lesson": quiz_lesson,
+        }
+
     def test_failed_attempt_leaves_the_course_incomplete(self):
         self._complete_content_lessons()
         save_progress(self.quiz_lesson, self.course)
